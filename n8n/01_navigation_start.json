@@ -46,10 +46,11 @@
         "options": {
           "maxRedirects": 2,
           "headers": {
-            "X-Goog-Api-Key": "={{ $credentials.GOOGLE_MAPS_API.key }}",
             "X-Goog-FieldMask": "routes.duration,routes.distanceMeters,routes.polyline,routes.legs,routes.warnings"
           }
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
@@ -61,7 +62,7 @@
       "credentials": [
         {
           "name": "GOOGLE_MAPS_API",
-          "type": "n8n-nodes-base.googleApi"
+          "type": "n8n-nodes-base.httpHeaderAuth"
         }
       ]
     },

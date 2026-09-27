@@ -45,11 +45,12 @@
         "options": {
           "maxRedirects": 2,
           "headers": {
-            "Authorization": "={{ 'Bearer ' + $credentials.GOOGLE_TTS.accessToken }}",
             "Content-Type": "application/json",
-            "X-Goog-User-Project": "={{ $credentials.GOOGLE_TTS.projectId }}"
+            "X-Goog-User-Project": "PROJECT_ID"
           }
-        }
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi"
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
@@ -61,7 +62,7 @@
       "credentials": [
         {
           "name": "GOOGLE_TTS",
-          "type": "n8n-nodes-base.googleAuth"
+          "type": "n8n-nodes-base.googleApi"
         }
       ]
     },

@@ -42,7 +42,9 @@
         },
         "options": {
           "maxRedirects": 2
-        }
+        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
@@ -54,7 +56,7 @@
       "credentials": [
         {
           "name": "GOOGLE_VISION_API",
-          "type": "n8n-nodes-base.googleApi"
+          "type": "n8n-nodes-base.httpHeaderAuth"
         }
       ]
     },
