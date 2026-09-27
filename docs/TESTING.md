@@ -17,13 +17,14 @@ python tests/safety/test_decisions.py && python tests/safety/test_maps.py
 
 ## Current Results
 
-45 tests, 0 failures, 0 errors, 0 skipped — OK
+82 tests, 0 failures, 0 errors, 0 skipped — OK
 
 Test categories:
 - **Safety decision engine (17 tests)** — Tests all 10 competition scenarios
 - **Deterministic rules (2 tests)** — Verifies only allowed actions are produced
 - **Validation functions (5 tests)** — Tests perception and decision schema validation
 - **Maps mapper (28 tests)** — Tests duration parsing, maneuver mapping, mock routes, response normalization
+- **Vision perception (37 tests)** — Tests mock scenarios, validation, label mapping, position/distance estimation, safety engine integration, provider enum, entry point
 
 ## Test Fixtures
 

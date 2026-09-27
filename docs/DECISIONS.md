@@ -265,6 +265,34 @@
 
 **Rejected**: Staying on the Directions API would mean using a deprecated API with a less structured response format.
 
+
+
+### D14: Vision Provider Adapter Pattern
+
+**Decision**: Keep the vision provider behind a Python adapter (`server/vision_adapter.py`) with a unified `analyze_frame()` entry point, rather than scattering Vision API calls throughout the codebase.
+
+**Why**:
+- **Swappable providers**: The rest of the app calls `analyze_frame(image, provider, ...)` — changing from Google Vision to GPT-4V to Claude only requires adding a new provider branch, not rewriting callers.
+- **Testable**: Mock provider generates structured perception without any API key — all 37 vision tests run offline.
+- **Validated output**: Every response (real or mock) goes through `validate_perception_dict()` before being returned. Malformed responses trigger `safe_fallback()`.
+- **Honest distance**: The adapter explicitly handles monocular distance estimation with low confidence, null for unreliably far objects, and clear documentation of the limitation.
+- **Single entry point**: The n8n workflow 02 does similar processing in JavaScript — both produce the same schema-compliant output.
+
+**How it works**:
+```
+analyze_frame(image_base64, provider, api_key, scenario, timestamp)
+    ├── VisionProvider.MOCK → analyze_frame_mock() → validated dict
+    ├── VisionProvider.GOOGLE_VISION → analyze_frame_google_vision() → validated dict
+    └── unknown → safe_fallback() → validated dict
+```
+
+**Alternatives considered**:
+- **Direct Vision API calls in n8n only**: Would work but no local testing without n8n, no mock provider for tests.
+- **LLM-only vision**: GPT-4V/Claude can return structured JSON directly, but costs money per image and needs API key. Good for production, but mock provider is essential for testing and demo.
+
+**Rejected**: Scattered Vision API calls without an adapter would make testing hard, provider switching painful, and mock/demo mode impossible without the real API.
+
+
 ## Future Decision Points
 
 These are not yet decided and may need to be addressed:

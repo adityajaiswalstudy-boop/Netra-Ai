@@ -28,6 +28,34 @@ This project includes 5 n8n workflow JSON files in the `n8n/` directory. These a
 
 ## Step 2: Configure Credentials
 
+
+
+### 02_perception.json — Vision API
+
+1. Click on the 'Google Vision API' HTTP request node
+2. Create credential with your Vision API key (HTTP Header Auth with `x-goog-api-key` header)
+3. Label: `GOOGLE_VISION_API`
+
+**How it works:**
+- Sends base64 image to `https://vision.googleapis.com/v1/images:annotate`
+- Uses `LABEL_DETECTION` (max 15 results) + `OBJECT_LOCALIZATION` (max 10 results)
+- Maps Vision labels to our object type enum (person→person, car→vehicle, etc.)
+- Uses bounding polygons from OBJECT_LOCALIZATION for position estimation
+- Estimates distance from vertical position (monocular — LOW confidence, clearly marked)
+- Returns structured perception matching `schemas/perception.schema.json`
+
+**Important limitations:**
+- Monocular phone camera cannot provide exact physical distance
+- `estimated_distance_m` is ALWAYS an estimate (not exact measurement)
+- `distance_confidence` accompanies every distance estimate
+- `null` is used when distance cannot reasonably be estimated
+- Labels from LABEL_DETECTION have NO spatial info — position is set to 'center' with confidence 0.15
+
+**Alternative providers:**
+To use GPT-4V, Claude, or Gemini instead, replace the Vision API node with the appropriate LLM node.
+The `server/vision_adapter.py` Python module supports both Google Vision and mock providers.
+
+
 ### 01_navigation_start.json — Google Maps API (Routes API v2)
 
 IMPORTANT: This workflow uses the Routes API v2 (not the deprecated Directions API).

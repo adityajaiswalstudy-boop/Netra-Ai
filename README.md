@@ -166,7 +166,7 @@ Three JSON Schema files (draft-07):
 |-----------|--------|-------|
 | Safety decision engine | ✅ BUILT + TESTED | 22KB, 17 tests pass |
 | Google Maps Routes API mapper | ✅ BUILT + TESTED | 12KB, 28 tests pass, no API key needed for tests |
-| Test suite (total) | ✅ BUILT + TESTED | 45 tests, 0 failures |
+| Test suite (total) | ✅ BUILT + TESTED | 82 tests (17 safety + 28 maps + 37 vision), 0 failures |
 | n8n workflow 01 (Routes API v2) | ✅ BUILT + UPDATED | Migrated from old Directions API to Routes API v2 |
 | n8n workflow 02 (perception) | 🔶 READY | Needs Vision API key or LLM choice |
 | n8n workflow 03 (safety decision) | ✅ BUILT | Same logic as Python engine, in JS |
@@ -177,8 +177,10 @@ Three JSON Schema files (draft-07):
 | Local dev server | ✅ BUILT | Flask, mock endpoints, optional |
 | Documentation | ✅ BUILT | 10 docs + README + decisions |
 | Google Maps integration | 🔶 READY, NOT CONNECTED | Routes API v2 wired, needs API key |
-| Vision AI integration | 🔶 READY, NOT CONNECTED | n8n workflow 02 wired, needs API key or LLM choice |
-| Google Cloud TTS | 🔶 READY, NOT CONNECTED | n8n workflow 04 wired with correct auth, needs GCP credentials |
+| Google Maps mapper (Python) | ✅ BUILT + TESTED | server/maps_mapper.py, 28 tests, no API key needed for tests |
+| Vision AI adapter (Python) | ✅ BUILT + TESTED | server/vision_adapter.py, 37 tests, mock + Google Vision support |
+| Vision AI integration (n8n) | 🔶 READY, NOT CONNECTED | n8n workflow 02 updated with hardened conversion, needs Vision API key or LLM choice |
+| Google Cloud TTS | 🔶 READY, NOT CONNECTED | n8n workflow 04 wired with correct OAuth2 auth, needs GCP credentials |
 | n8n Cloud import | 🔴 NOT DONE | Requires your n8n account access |
 | Full end-to-end test | 🔴 NOT DONE | Requires n8n + API credentials |
 | PWA icons | 🔴 PLACEHOLDER | Need icon-192.png, icon-512.png |

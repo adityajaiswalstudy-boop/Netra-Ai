@@ -130,6 +130,57 @@ Credential label: GOOGLE_TTS
 
 ---
 
+
+
+## Google Cloud Vision API
+
+### What it is used for
+- Object detection from camera frames
+- Scene understanding (labels + localized objects with bounding boxes)
+
+### Setup
+1. Go to https://console.cloud.google.com/vision
+2. Enable Cloud Vision API
+3. Create API key (Credentials → Create credentials → API key)
+4. Restrict key to Vision API only
+5. Copy key to .env as `VISION_API_KEY`
+
+### API Details
+- Endpoint: POST https://vision.googleapis.com/v1/images:annotate
+- Auth: x-goog-api-key header (or OAuth2)
+- Features used: LABEL_DETECTION (max 15) + OBJECT_LOCALIZATION (max 10)
+- Response: labelAnnotations (description, score) + localizedObjectAnnotations (name, score, boundingPoly)
+
+### How distance is estimated (IMPORTANT — technical honesty)
+The adapter uses a HEURISTIC for distance estimation from the bounding box vertical position:
+- Objects lower in the frame (higher y value) are estimated as closer
+- This is a MONOCULAR ESTIMATE — not an exact measurement
+- Confidence is LOW (0.15-0.60 range)
+- Distances above ~18m are returned as null (too far to estimate)
+- Labels from LABEL_DETECTION have NO spatial info — their distance is always null
+
+### Alternative: LLM-based Vision
+Instead of Google Vision, you can use:
+- **GPT-4V** (OpenAI): multimodal, excellent at object detection with spatial awareness, can return structured JSON
+- **Claude** (Anthropic): multimodal, good at structured output
+- **Google Gemini**: multimodal, good Vision integration
+
+To switch providers:
+1. Modify `server/vision_adapter.py` to add the new provider
+2. Modify `n8n/02_perception.json` to use the appropriate n8n node
+3. The `analyze_frame()` entry point handles provider selection
+
+### Quota and pricing
+- Vision API: 1000 units/month free tier (label detection = 1 unit, object localization = 1 unit per image)
+- Demo usage: ~1-2 images per demo session = negligible
+- GPT-4V: ~$0.02-0.06 per image
+- Claude: ~$0.003-0.01 per image
+
+### Place it
+n8n workflow: 02_perception.json → Google Vision API node
+Credential label: GOOGLE_VISION_API
+Python adapter: server/vision_adapter.py → analyze_frame(provider=VisionProvider.GOOGLE_VISION, api_key=...)
+
 ## Browser SpeechSynthesis (Fallback — No API Key Needed)
 
 The mobile PWA uses browser SpeechSynthesis as a fallback:
