@@ -1,0 +1,392 @@
+[
+  {
+    "id": "test_01_clear_path",
+    "name": "Clear path \u2192 STRAIGHT",
+    "description": "No obstacles detected. All paths clear.",
+    "perception": {
+      "scene_summary": "Open sidewalk ahead. No obstacles detected.",
+      "objects": [],
+      "left_path": {
+        "clear": true,
+        "risk": "LOW",
+        "confidence": 0.9
+      },
+      "center_path": {
+        "clear": true,
+        "risk": "LOW",
+        "confidence": 0.92
+      },
+      "right_path": {
+        "clear": true,
+        "risk": "LOW",
+        "confidence": 0.88
+      },
+      "overall_risk": "LOW",
+      "confidence": 0.9
+    },
+    "expected_action": "STRAIGHT",
+    "expected_voice": "Path clear. Continue straight."
+  },
+  {
+    "id": "test_02_pole_left_safe",
+    "name": "Pole center, left safe \u2192 LEFT",
+    "description": "Pole 4m ahead in center. Left side clear (sidewalk). Right is road.",
+    "perception": {
+      "scene_summary": "Pole ahead on sidewalk. Left side clear. Right is road.",
+      "objects": [
+        {
+          "type": "pole",
+          "position": "center",
+          "estimated_distance_m": 4.0,
+          "distance_confidence": 0.72,
+          "blocks_path": true,
+          "risk": "HIGH"
+        }
+      ],
+      "left_path": {
+        "clear": true,
+        "risk": "LOW",
+        "confidence": 0.88
+      },
+      "center_path": {
+        "clear": false,
+        "risk": "HIGH",
+        "confidence": 0.91
+      },
+      "right_path": {
+        "clear": false,
+        "risk": "HIGH",
+        "confidence": 0.75
+      },
+      "overall_risk": "HIGH",
+      "confidence": 0.86
+    },
+    "expected_action": "LEFT",
+    "expected_voice": "Pole ahead. Move left."
+  },
+  {
+    "id": "test_03_pole_left_blocked_right_safe",
+    "name": "Pole center, left blocked, right safe \u2192 RIGHT",
+    "description": "Pole ahead. Left path also blocked. Right side clear.",
+    "perception": {
+      "scene_summary": "Obstacle ahead. Left blocked by construction. Right clear.",
+      "objects": [
+        {
+          "type": "pole",
+          "position": "center",
+          "estimated_distance_m": 3.5,
+          "distance_confidence": 0.7,
+          "blocks_path": true,
+          "risk": "HIGH"
+        },
+        {
+          "type": "construction_barrier",
+          "position": "left",
+          "estimated_distance_m": 5.0,
+          "distance_confidence": 0.6,
+          "blocks_path": true,
+          "risk": "HIGH"
+        }
+      ],
+      "left_path": {
+        "clear": false,
+        "risk": "HIGH",
+        "confidence": 0.78
+      },
+      "center_path": {
+        "clear": false,
+        "risk": "HIGH",
+        "confidence": 0.88
+      },
+      "right_path": {
+        "clear": true,
+        "risk": "LOW",
+        "confidence": 0.85
+      },
+      "overall_risk": "HIGH",
+      "confidence": 0.82
+    },
+    "expected_action": "RIGHT",
+    "expected_voice": "Pole and construction ahead. Move right."
+  },
+  {
+    "id": "test_04_all_blocked",
+    "name": "All paths blocked \u2192 STOP",
+    "description": "High risk obstacles in all three directions.",
+    "perception": {
+      "scene_summary": "Multiple obstacles block all directions.",
+      "objects": [
+        {
+          "type": "construction_barrier",
+          "position": "center",
+          "estimated_distance_m": 3.0,
+          "distance_confidence": 0.8,
+          "blocks_path": true,
+          "risk": "CRITICAL"
+        },
+        {
+          "type": "wall",
+          "position": "left",
+          "estimated_distance_m": 4.0,
+          "distance_confidence": 0.75,
+          "blocks_path": true,
+          "risk": "HIGH"
+        },
+        {
+          "type": "vehicle",
+          "position": "right",
+          "estimated_distance_m": 5.0,
+          "distance_confidence": 0.65,
+          "blocks_path": true,
+          "risk": "CRITICAL"
+        }
+      ],
+      "left_path": {
+        "clear": false,
+        "risk": "HIGH",
+        "confidence": 0.8
+      },
+      "center_path": {
+        "clear": false,
+        "risk": "CRITICAL",
+        "confidence": 0.9
+      },
+      "right_path": {
+        "clear": false,
+        "risk": "CRITICAL",
+        "confidence": 0.85
+      },
+      "overall_risk": "CRITICAL",
+      "confidence": 0.88
+    },
+    "expected_action": "STOP",
+    "expected_voice": "Path blocked. Stop."
+  },
+  {
+    "id": "test_05_vehicle_approaching",
+    "name": "Vehicle approaching \u2192 STOP",
+    "description": "Vehicle detected in center at 6m. Immediate stop required.",
+    "perception": {
+      "scene_summary": "Vehicle approaching head-on.",
+      "objects": [
+        {
+          "type": "vehicle",
+          "position": "center",
+          "estimated_distance_m": 6.0,
+          "distance_confidence": 0.85,
+          "blocks_path": true,
+          "risk": "CRITICAL"
+        }
+      ],
+      "left_path": {
+        "clear": true,
+        "risk": "LOW",
+        "confidence": 0.85
+      },
+      "center_path": {
+        "clear": false,
+        "risk": "CRITICAL",
+        "confidence": 0.92
+      },
+      "right_path": {
+        "clear": true,
+        "risk": "LOW",
+        "confidence": 0.82
+      },
+      "overall_risk": "CRITICAL",
+      "confidence": 0.9
+    },
+    "expected_action": "STOP",
+    "expected_voice": "Vehicle approaching. Stop."
+  },
+  {
+    "id": "test_06_low_confidence",
+    "name": "Low confidence \u2192 WAIT",
+    "description": "Perception confidence below threshold. Should wait.",
+    "perception": {
+      "scene_summary": "Blurry frame. Unable to determine obstacles reliably.",
+      "objects": [],
+      "left_path": {
+        "clear": true,
+        "risk": "LOW",
+        "confidence": 0.4
+      },
+      "center_path": {
+        "clear": true,
+        "risk": "LOW",
+        "confidence": 0.35
+      },
+      "right_path": {
+        "clear": true,
+        "risk": "LOW",
+        "confidence": 0.38
+      },
+      "overall_risk": "LOW",
+      "confidence": 0.3
+    },
+    "expected_action": "WAIT",
+    "expected_voice": "Wait. Reassessing."
+  },
+  {
+    "id": "test_07_maps_route_available",
+    "name": "Maps route available \u2192 navigation context",
+    "description": "Valid navigation state with route steps.",
+    "perception": {
+      "scene_summary": "Sidewalk ahead on route to destination.",
+      "objects": [],
+      "left_path": {
+        "clear": true,
+        "risk": "LOW",
+        "confidence": 0.9
+      },
+      "center_path": {
+        "clear": true,
+        "risk": "LOW",
+        "confidence": 0.92
+      },
+      "right_path": {
+        "clear": true,
+        "risk": "LOW",
+        "confidence": 0.88
+      },
+      "overall_risk": "LOW",
+      "confidence": 0.9
+    },
+    "navigation": {
+      "session_id": "sess_demo_001",
+      "origin": {
+        "lat": 27.7169,
+        "lng": 85.323,
+        "address": "Kathmandu Durbar Square"
+      },
+      "destination": {
+        "lat": 27.7275,
+        "lng": 85.3155,
+        "address": "Thamel, Kathmandu",
+        "name": "Thamel"
+      },
+      "current_location": {
+        "lat": 27.717,
+        "lng": 85.3228,
+        "accuracy_m": 5.0,
+        "timestamp": 1700000000
+      },
+      "heading_deg": 215.0,
+      "route": {
+        "total_distance_m": 1200,
+        "total_duration_s": 780,
+        "steps": [
+          {
+            "instruction": "Head southwest on Durbar Marg",
+            "distance_m": 200,
+            "duration_s": 120,
+            "turn": "straight",
+            "step_number": 0
+          },
+          {
+            "instruction": "Turn left onto Bhimsen Marg",
+            "distance_m": 350,
+            "duration_s": 210,
+            "turn": "left",
+            "step_number": 1
+          },
+          {
+            "instruction": "Continue onto Guruju Marg",
+            "distance_m": 400,
+            "duration_s": 280,
+            "turn": "straight",
+            "step_number": 2
+          },
+          {
+            "instruction": "Arrive at Thamel",
+            "distance_m": 250,
+            "duration_s": 170,
+            "turn": "straight",
+            "step_number": 3
+          }
+        ],
+        "current_step_index": 0
+      },
+      "status": "active"
+    },
+    "expected_action": "STRAIGHT",
+    "expected_voice": "Path clear. Continue straight."
+  },
+  {
+    "id": "test_08_maps_failure",
+    "name": "Maps failure \u2192 graceful fallback",
+    "description": "Navigation unavailable but perception is fine.",
+    "perception": {
+      "scene_summary": "Open path. Navigation service unavailable.",
+      "objects": [],
+      "left_path": {
+        "clear": true,
+        "risk": "LOW",
+        "confidence": 0.88
+      },
+      "center_path": {
+        "clear": true,
+        "risk": "LOW",
+        "confidence": 0.9
+      },
+      "right_path": {
+        "clear": true,
+        "risk": "LOW",
+        "confidence": 0.85
+      },
+      "overall_risk": "LOW",
+      "confidence": 0.88
+    },
+    "navigation": null,
+    "expected_action": "STRAIGHT",
+    "expected_voice": "Path clear. Continue straight."
+  },
+  {
+    "id": "test_09_malformed_vision",
+    "name": "Malformed vision JSON \u2192 safe fallback",
+    "description": "Perception missing required fields. Engine should return WAIT.",
+    "perception": {
+      "scene_summary": "Partial data",
+      "objects": []
+    },
+    "expected_action": "WAIT",
+    "expected_voice": "Wait. Reassessing."
+  },
+  {
+    "id": "test_10_vehicle_unknown_distance",
+    "name": "Vehicle with unknown distance \u2192 STOP",
+    "description": "Vehicle in center but distance unknown \u2192 conservative STOP.",
+    "perception": {
+      "scene_summary": "Vehicle ahead. Distance cannot be determined.",
+      "objects": [
+        {
+          "type": "vehicle",
+          "position": "center",
+          "estimated_distance_m": null,
+          "distance_confidence": 0.2,
+          "blocks_path": true,
+          "risk": "HIGH"
+        }
+      ],
+      "left_path": {
+        "clear": true,
+        "risk": "LOW",
+        "confidence": 0.7
+      },
+      "center_path": {
+        "clear": false,
+        "risk": "HIGH",
+        "confidence": 0.6
+      },
+      "right_path": {
+        "clear": true,
+        "risk": "LOW",
+        "confidence": 0.65
+      },
+      "overall_risk": "HIGH",
+      "confidence": 0.55
+    },
+    "expected_action": "STOP",
+    "expected_voice": "Vehicle approaching. Stop."
+  }
+]

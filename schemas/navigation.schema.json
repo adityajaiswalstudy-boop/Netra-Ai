@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Navigation State",
+  "description": "Current navigation session state",
+  "type": "object",
+  "required": ["session_id", "origin", "destination", "status"],
+  "properties": {
+    "session_id": { "type": "string", "minLength": 1 },
+    "origin": {
+      "type": "object",
+      "properties": {
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "address": { "type": "string" }
+      }
+    },
+    "destination": {
+      "type": "object",
+      "properties": {
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "address": { "type": "string" },
+        "name": { "type": "string" }
+      }
+    },
+    "current_location": {
+      "type": "object",
+      "properties": {
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "accuracy_m": { "type": "number" },
+        "timestamp": { "type": "number" }
+      }
+    },
+    "heading_deg": { "type": "number" },
+    "route": {
+      "type": "object",
+      "properties": {
+        "total_distance_m": { "type": "number" },
+        "total_duration_s": { "type": "number" },
+        "steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "instruction": { "type": "string" },
+              "distance_m": { "type": "number" },
+              "duration_s": { "type": "number" },
+              "turn": { "type": "string", "enum": ["left","right","straight","u-turn","slightly_left","slightly_right", null] },
+              "step_number": { "type": "integer" }
+            }
+          }
+        },
+        "current_step_index": { "type": "integer" }
+      }
+    },
+    "status": { "type": "string", "enum": ["active","paused","completed","failed","waiting_perception"] },
+    "last_perception": {
+      "type": "object",
+      "properties": {
+        "timestamp": { "type": "number" },
+        "overall_risk": { "type": "string", "enum": ["LOW","MEDIUM","HIGH","CRITICAL"] },
+        "action": { "type": "string", "enum": ["LEFT","RIGHT","STRAIGHT","STOP","WAIT", null] }
+      }
+    },
+    "last_decision": {
+      "type": "object",
+      "properties": {
+        "timestamp": { "type": "number" },
+        "action": { "type": "string", "enum": ["LEFT","RIGHT","STRAIGHT","STOP","WAIT", null] },
+        "voice_instruction": { "type": "string" }
+      }
+    },
+    "created_at": { "type": "number" },
+    "updated_at": { "type": "number" }
+  }
+}

@@ -1,0 +1,141 @@
+{
+  "name": "04_voice",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "voice",
+        "responseMode": "response",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ],
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Validate voice request\nconst data = items[0].json;\nif (!data.text || typeof data.text !== 'string' || data.text.trim().length === 0) {\n  return [{ json: { error: 'Missing or empty text for TTS', status: 'error' } }];\n}\nif (!data.language) {\n  return [{ json: { error: 'Missing language parameter', status: 'error' } }];\n}\nreturn [{\n  json: {\n    text: data.text.trim(),\n    language: data.language,\n    voice_name: data.voice_name || 'en-US-Standard-A',\n    pitch: data.pitch || 1.0,\n    speaking_rate: data.speaking_rate || 1.0,\n    session_id: data.session_id || 'unknown',\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        300
+      ],
+      "name": "Validate"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://text-to-speech.googleapis.com/v1/text:synthesize",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": {
+            "input": "={{ JSON.stringify({ text: $json.text }) }}",
+            "voice": "={{ JSON.stringify({ languageCode: $json.language.slice(0,2) + '-' + $json.language.slice(3), name: $json.voice_name }) }}",
+            "audioConfig": "={{ JSON.stringify({ audioEncoding: 'MP3', pitch: $json.pitch, speakingRate: $json.speaking_rate }) }}"
+          }
+        },
+        "options": {
+          "maxRedirects": 2
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        600,
+        300
+      ],
+      "name": "Google Cloud TTS",
+      "credentials": [
+        {
+          "name": "GOOGLE_TTS_CREDENTIALS",
+          "type": "n8n-nodes-base.googleAuth"
+        }
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Extract audio content from TTS response\nconst data = items[0].json;\nconst audioContent = data.audioContent;\n\nif (!audioContent) {\n  // TTS failed - return fallback signal\n  return [{\n    json: {\n      status: 'tts_failed',\n      audio_base64: null,\n      error: 'TTS API returned no audio content',\n      fallback: true,\n      text: items[0].json.text,\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    status: 'ok',\n    audio_base64: audioContent,\n    audio_format: 'mp3',\n    text: items[0].json.text,\n    language: items[0].json.language,\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        300
+      ],
+      "name": "Parse TTS Response"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        300
+      ],
+      "name": "Respond"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Validate": {
+      "main": [
+        [
+          {
+            "node": "Google Cloud TTS",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Google Cloud TTS": {
+      "main": [
+        [
+          {
+            "node": "Parse TTS Response",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Parse TTS Response": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    "voice",
+    "tts"
+  ],
+  "meta": {
+    "templateId": null
+  },
+  "id": "n8n_workflow_voice"
+}

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="AI SafePath — AI-powered safety navigation assistant">
+<title>AI SafePath</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+<div id="app">
+  <!-- Header -->
+  <header id="header">
+    <h1>🚶 AI SafePath</h1>
+    <div id="status-badge" class="status-badge status-idle">
+      <span class="status-dot"></span>
+      <span class="status-text">Ready</span>
+    </div>
+  </header>
+
+  <!-- Main content area -->
+  <main>
+    <!-- Destination input -->
+    <section id="destination-section">
+      <label for="destination-input">Destination</label>
+      <div class="input-row">
+        <input type="text" id="destination-input"
+               placeholder="e.g. Thamel, Kathmandu"
+               autocomplete="off">
+        <button id="btn-set-destination" class="btn-primary">
+          Set
+        </button>
+      </div>
+      <div id="destination-display" class="destination-display hidden">
+        <span class="dest-label">Destination:</span>
+        <span id="dest-name">—</span>
+        <button id="btn-clear-destination" class="btn-small">✕</button>
+      </div>
+    </section>
+
+    <!-- Camera view -->
+    <section id="camera-section">
+      <div id="camera-container">
+        <video id="camera-stream" autoplay playsinline muted></video>
+        <canvas id="frame-canvas" style="display:none"></canvas>
+        <div id="camera-overlay">
+          <div class="camera-status" id="camera-status">
+            Camera not started
+          </div>
+        </div>
+        <div id="detection-overlay" class="hidden">
+          <!-- Detection boxes rendered here -->
+        </div>
+      </div>
+      <div class="camera-controls">
+        <button id="btn-start-camera" class="btn-secondary">
+          📷 Start Camera
+        </button>
+        <button id="btn-stop-camera" class="btn-secondary hidden">
+          ⏹ Stop
+        </button>
+      </div>
+    </section>
+
+    <!-- Perception debug panel -->
+    <section id="perception-section" class="debug-panel hidden">
+      <h2>Perception</h2>
+      <div id="perception-objects">
+        <p class="no-data">No objects detected.</p>
+      </div>
+      <div class="path-analysis">
+        <div class="path-card" id="path-left">
+          <span class="path-label">LEFT</span>
+          <span class="path-status" id="path-left-status">—</span>
+          <span class="path-risk" id="path-left-risk">—</span>
+        </div>
+        <div class="path-card" id="path-center">
+          <span class="path-label">CENTER</span>
+          <span class="path-status" id="path-center-status">—</span>
+          <span class="path-risk" id="path-center-risk">—</span>
+        </div>
+        <div class="path-card" id="path-right">
+          <span class="path-label">RIGHT</span>
+          <span class="path-status" id="path-right-status">—</span>
+          <span class="path-risk" id="path-right-risk">—</span>
+        </div>
+      </div>
+      <div class="risk-bar">
+        <span class="risk-label">Overall Risk:</span>
+        <span class="risk-value" id="overall-risk">—</span>
+        <span class="risk-confidence">Conf: <span id="perception-confidence">—</span></span>
+      </div>
+    </section>
+
+    <!-- Decision display -->
+    <section id="decision-section">
+      <div class="decision-card">
+        <div class="decision-label">DECISION</div>
+        <div id="decision-action" class="decision-action decision-idle">
+          —
+        </div>
+        <div id="decision-voice" class="decision-voice">
+          <span class="voice-icon">🔊</span>
+          <span id="voice-text">Awaiting perception...</span>
+        </div>
+        <button id="btn-speak" class="btn-small btn-speak" disabled>
+          🔊 Speak
+        </button>
+      </div>
+    </section>
+
+    <!-- Navigation info -->
+    <section id="nav-info-section" class="hidden">
+      <h2>Navigation</h2>
+      <div class="nav-info-row">
+        <span>Route:</span>
+        <span id="nav-route-info">—</span>
+      </div>
+      <div class="nav-info-row">
+        <span>Next:</span>
+        <span id="nav-next-step">—</span>
+      </div>
+      <div class="nav-info-row">
+        <span>Remaining:</span>
+        <span id="nav-remaining">—</span>
+      </div>
+    </section>
+
+    <!-- Action buttons -->
+    <section id="action-section">
+      <button id="btn-start-navigation" class="btn-primary btn-block" disabled>
+        ▶ Start Navigation
+      </button>
+      <button id="btn-stop-navigation" class="btn-danger btn-block hidden">
+        ⏹ Stop Navigation
+      </button>
+    </section>
+
+    <!-- Settings -->
+    <section id="settings-section">
+      <div class="settings-row">
+        <label>Capture interval:</label>
+        <select id="capture-interval">
+          <option value="1000">1s</option>
+          <option value="2000" selected>2s</option>
+          <option value="3000">3s</option>
+          <option value="5000">5s</option>
+        </select>
+      </div>
+      <div class="settings-row">
+        <label>TTS language:</label>
+        <select id="tts-language">
+          <option value="en-US">English (US)</option>
+          <option value="en-GB">English (UK)</option>
+        </select>
+      </div>
+      <div class="settings-row">
+        <label>
+          <input type="checkbox" id="debug-mode">
+          Debug mode
+        </label>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div id="session-info" class="hidden">
+      Session: <code id="session-id-display">—</code>
+    </div>
+    <div id="latency-display" class="hidden">
+      Latency: <span id="latency-value">—</span>ms
+    </div>
+    <div class="version">v0.1.0 · AI SafePath</div>
+  </footer>
+</div>
+
+<!-- Demo mode overlay -->
+<div id="demo-overlay" class="hidden">
+  <div class="demo-card">
+    <h3>🎬 Demo Mode</h3>
+    <p>Simulated perception for demonstration.</p>
+    <div class="demo-scenarios">
+      <button class="demo-btn" data-scenario="pole_left">Pole → Left</button>
+      <button class="demo-btn" data-scenario="vehicle_stop">Vehicle → Stop</button>
+      <button class="demo-btn" data-scenario="clear">Clear → Straight</button>
+    </div>
+    <button id="btn-exit-demo" class="btn-secondary">Exit Demo</button>
+  </div>
+</div>
+
+<script src="src/app.js"></script>
+</body>
+</html>

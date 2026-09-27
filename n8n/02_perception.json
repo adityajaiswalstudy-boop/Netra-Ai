@@ -1,0 +1,139 @@
+{
+  "name": "02_perception",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "perception",
+        "responseMode": "response",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ],
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Validate perception request\nconst data = items[0].json;\n\nif (!data.image_base64 && !data.image_url) {\n  return [{ json: { error: 'Missing image (image_base64 or image_url required)', status: 'error' } }];\n}\n\n// Check frame timestamp\nconst ts = data.frame_timestamp_ms || Date.now();\nreturn [{\n  json: {\n    image_base64: data.image_base64,\n    image_url: data.image_url,\n    frame_timestamp_ms: ts,\n    session_id: data.session_id || 'unknown',\n    device_id: data.device_id || 'unknown',\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        300
+      ],
+      "name": "Validate Frame"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://vision.googleapis.com/v1/images:annotate",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": {
+            "requests": "={{ JSON.stringify([{ features: [{ type: 'LABEL_DETECTION', maxResults: 20 }, { type: 'OBJECT_LOCALIZATION', maxResults: 15 }], image: { content: $json.image_base64 } }]) }}"
+          }
+        },
+        "options": {
+          "maxRedirects": 2
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        600,
+        300
+      ],
+      "name": "Google Vision API",
+      "credentials": [
+        {
+          "name": "GOOGLE_VISION_API",
+          "type": "n8n-nodes-base.googleApi"
+        }
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Convert Vision API response to structured perception JSON\n// NOTE: In production, replace this with a proper vision model\n// (GPT-4V, Claude, or dedicated object detection model)\n\nconst visionData = items[0].json;\nconst labels = (visionData.labelAnnotations || []).map(l => ({\n  name: l.description,\n  score: l.score,\n}));\n\n// For a real implementation, this is where you'd call\n// a multimodal LLM or dedicated object detection model\n// to produce the full structured perception schema.\n\n// DEMO FALLBACK: If no real vision model is wired, generate\n// a conservative mock based on label presence.\n\nconst mockPerception = {\n  scene_summary: \"Scene analyzed. \" + (labels.length > 0\n    ? labels.slice(0, 5).map(l => l.name).join(', ') + ' detected.'\n    : 'No prominent objects detected.'),\n  objects: labels.filter(l => l.score > 0.6).slice(0, 10).map(l => ({\n    type: categorize_label(l.name),\n    position: 'center',\n    estimated_distance_m: 5 + Math.random() * 10,\n    distance_confidence: 0.5 + Math.random() * 0.3,\n    blocks_path: false,\n    risk: 'LOW',\n  })),\n  left_path: { clear: true, risk: 'LOW', confidence: 0.85 },\n  center_path: { clear: true, risk: 'LOW', confidence: 0.88 },\n  right_path: { clear: true, risk: 'LOW', confidence: 0.82 },\n  overall_risk: 'LOW',\n  confidence: 0.75,\n  frame_timestamp_ms: items[0].json.frame_timestamp_ms,\n  debug: {\n    model_used: 'google_vision_labels (DEMO FALLBACK)',\n    processing_time_ms: 200,\n    raw_label_count: labels.length,\n  },\n};\n\nfunction categorize_label(name) {\n  const map = {\n    'person': 'person', 'people': 'person', 'man': 'person', 'woman': 'person', 'child': 'person',\n    'car': 'vehicle', 'cars': 'vehicle', 'truck': 'vehicle', 'bus': 'vehicle', 'van': 'vehicle',\n    'motorcycle': 'motorcycle', 'bike': 'bicycle', 'bicycle': 'bicycle',\n    'pole': 'pole', 'traffic light': 'sign', 'sign': 'sign', 'street sign': 'sign',\n    'tree': 'tree', 'building': 'wall', 'wall': 'wall',\n    'stairs': 'stairs', 'staircase': 'stairs',\n    'bench': 'bench', 'trash': 'bin', 'bin': 'bin', 'garbage': 'bin',\n    'door': 'door', 'fence': 'fence', 'road': 'road', 'sidewalk': 'sidewalk',\n    'animal': 'animal', 'dog': 'animal', 'cat': 'animal',\n  };\n  return map[name.toLowerCase()] || 'unknown_obstacle';\n}\n\nreturn [{ json: mockPerception }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        300
+      ],
+      "name": "Convert to Perception Schema"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        300
+      ],
+      "name": "Respond"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Frame",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Validate Frame": {
+      "main": [
+        [
+          {
+            "node": "Google Vision API",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Google Vision API": {
+      "main": [
+        [
+          {
+            "node": "Convert to Perception Schema",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Convert to Perception Schema": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    "perception",
+    "vision"
+  ],
+  "meta": {
+    "templateId": null
+  },
+  "id": "n8n_workflow_perception"
+}

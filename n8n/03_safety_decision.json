@@ -1,0 +1,101 @@
+{
+  "name": "03_safety_decision",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "safety-decision",
+        "responseMode": "response",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ],
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Validate incoming perception + optional navigation\nconst data = items[0].json;\n\nif (!data.perception) {\n  return [{ json: { error: 'Missing perception data', status: 'error' } }];\n}\n\n// Validate perception against schema\nconst per = data.perception;\nconst requiredFields = ['scene_summary', 'objects', 'left_path', 'center_path', 'right_path', 'overall_risk', 'confidence'];\nconst missing = requiredFields.filter(k => !(k in per));\nif (missing.length > 0) {\n  return [{\n    json: {\n      error: 'Perception missing fields: ' + missing.join(', '),\n      status: 'error',\n      safe_action: 'WAIT',\n      reason: 'Perception data incomplete',\n      voice_instruction: 'Wait. Reassessing.',\n      confidence: 0,\n      timestamp: Date.now(),\n    }\n  }];\n}\n\n// Validate enums\nconst validRisks = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];\nconst validActions = ['LEFT', 'RIGHT', 'STRAIGHT', 'STOP', 'WAIT'];\nconst validPaths = ['left_path', 'center_path', 'right_path'];\n\nfor (const pk of validPaths) {\n  if (per[pk]) {\n    if (!validRisks.includes(per[pk].risk)) {\n      return [{ json: { error: pk + '.risk invalid: ' + per[pk].risk, status: 'error' } }];\n    }\n  }\n}\n\nif (!validRisks.includes(per.overall_risk)) {\n  return [{ json: { error: 'overall_risk invalid: ' + per.overall_risk, status: 'error' } }];\n}\n\nreturn [{\n  json: {\n    perception: per,\n    navigation: data.navigation || null,\n    session_id: data.session_id || 'unknown',\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        300
+      ],
+      "name": "Validate Input"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Apply deterministic safety rules (mirrors server/safety_engine.py logic)\n\nconst perception = items[0].json.perception;\nconst navigation = items[0].json.navigation;\nconst now = Date.now();\n\nconst CONFIDENCE_THRESHOLD = 0.45;\n\n// Helper: worst risk\nconst RISK_ORDER = { LOW: 0, MEDIUM: 1, HIGH: 2, CRITICAL: 3 };\nfunction worstRisk(...risks) {\n  const levels = risks.filter(r => r).map(r => RISK_ORDER[r]);\n  if (levels.length === 0) return 'LOW';\n  return Object.keys(RISK_ORDER).find(k => RISK_ORDER[k] === Math.max(...levels)) || 'LOW';\n}\n\n// Helper: risk from danger score\nfunction riskFromScore(score) {\n  if (score >= 0.85) return 'CRITICAL';\n  if (score >= 0.65) return 'HIGH';\n  if (score >= 0.40) return 'MEDIUM';\n  return 'LOW';\n}\n\n// Analyze a path direction\nfunction analyzePath(objects, direction) {\n  const dirPrefix = direction.toLowerCase();\n  let dangerScore = 0;\n  const blocking = [];\n\n  const typeDanger = {\n    vehicle: 0.95, motorcycle: 0.90, bicycle: 0.70, person: 0.65,\n    construction_barrier: 0.60, pole: 0.45, wall: 0.50, fence: 0.40,\n    stairs: 0.55, curb: 0.30, pothole: 0.35, tree: 0.20, bench: 0.15,\n    bin: 0.10, sign: 0.12, door: 0.18, animal: 0.50, unknown_obstacle: 0.40,\n  };\n\n  for (const obj of objects) {\n    const position = (obj.position || '').toLowerCase();\n    if (!position.startsWith(dirPrefix) && position !== direction) continue;\n\n    const base = typeDanger[obj.type] || 0.30;\n    let distMod = 0.5;\n    if (obj.estimated_distance_m != null && obj.estimated_distance_m > 0) {\n      const d = obj.estimated_distance_m;\n      if (d < 2) distMod = 1.0;\n      else if (d < 5) distMod = 0.8;\n      else if (d < 10) distMod = 0.5;\n    }\n    if (obj.distance_confidence < 0.5) distMod *= 0.6;\n    if (obj.blocks_path) base += 0.25;\n\n    const objDanger = Math.min(base * distMod, 1);\n    dangerScore = Math.max(dangerScore, objDanger);\n    if (obj.blocks_path || objDanger >= 0.4) blocking.push(obj);\n  }\n\n  return {\n    clear: dangerScore < 0.30 && blocking.length === 0,\n    risk: riskFromScore(dangerScore),\n    confidence: Math.min(1, blocking.length > 0 ? 0.5 + 0.1 * blocking.length : 0.85),\n    blocking_objects: blocking,\n  };\n}\n\nconst objects = perception.objects || [];\nconst leftA = analyzePath(objects, 'left');\nconst centerA = analyzePath(objects, 'center');\nconst rightA = analyzePath(objects, 'right');\n\nconst perceptionConf = perception.confidence || 0;\n\n// --- Low confidence check ---\nif (perceptionConf < CONFIDENCE_THRESHOLD) {\n  return [{ json: {\n    action: 'WAIT',\n    reason: 'Perception confidence (' + perceptionConf.toFixed(2) + ') below threshold (' + CONFIDENCE_THRESHOLD + '). Waiting.',\n    confidence: perceptionConf,\n    timestamp: now,\n    perception_summary: { overall_risk: perception.overall_risk, primary_threat: 'low_confidence', threat_count: objects.length },\n    voice_instruction: 'Wait. Reassessing.',\n    debug: { rules_triggered: ['low_confidence'], safety_score: perceptionConf },\n  }}];\n}\n\n// --- Vehicle immediate stop ---\nconst vehicleTypes = ['vehicle', 'motorcycle'];\nconst vehiclesInCenter = objects.filter(o =>\n  vehicleTypes.includes(o.type) && (o.position || '').toLowerCase().startsWith('center')\n);\n\nfor (const v of vehiclesInCenter) {\n  const dist = v.estimated_distance_m;\n  if (dist != null && dist < 8) {\n    return [{ json: {\n      action: 'STOP',\n      reason: v.type + ' approaching at ~' + dist.toFixed(1) + 'm. Stopping for safety.',\n      confidence: 0.95,\n      timestamp: now,\n      perception_summary: { overall_risk: 'CRITICAL', primary_threat: 'vehicle', threat_count: vehiclesInCenter.length },\n      voice_instruction: 'Vehicle approaching. Stop.',\n      debug: { rules_triggered: ['vehicle_immediate_stop'], safety_score: 0.95 },\n    }}];\n  }\n  if (dist == null) {\n    return [{ json: {\n      action: 'STOP',\n      reason: 'Vehicle in path (distance unknown). Stopping conservatively.',\n      confidence: 0.80,\n      timestamp: now,\n      perception_summary: { overall_risk: 'HIGH', primary_threat: 'vehicle', threat_count: vehiclesInCenter.length },\n      voice_instruction: 'Vehicle approaching. Stop.',\n      debug: { rules_triggered: ['vehicle_unknown_distance_stop'], safety_score: 0.80 },\n    }}];\n  }\n}\n\n// --- Path selection ---\nconst paths = {\n  LEFT: leftA,\n  RIGHT: rightA,\n  STRAIGHT: centerA,\n};\n\nfunction pathScore(analysis) {\n  return [analysis.clear ? 0 : 1, RISK_ORDER[analysis.risk]];\n}\n\nconst scored = Object.entries(paths)\n  .map(([name, analysis]) => [name, pathScore(analysis), analysis])\n  .sort((a, b) => {\n    for (let i = 0; i < 2; i++) {\n      if (a[1][i] !== b[1][i]) return a[1][i] - b[1][i];\n    }\n    return 0;\n  });\n\nconst bestName = scored[0][0];\nconst bestAnalysis = scored[0][2];\nconst secondBest = scored.length > 1 ? scored[1][0] : null;\n\n// --- All blocked ---\nconst allBlocked = Object.values(paths).every(p => !p.clear);\nif (allBlocked && RISK_ORDER[perception.overall_risk] >= 2) {\n  return [{ json: {\n    action: 'STOP',\n    reason: 'All paths blocked. Stopping.',\n    confidence: 0.85,\n    timestamp: now,\n    perception_summary: { overall_risk: perception.overall_risk, primary_threat: describeBlockers(centerA.blocking_objects), threat_count: objects.length },\n    voice_instruction: 'Path blocked. Stop.',\n    debug: { rules_triggered: ['all_paths_blocked'], safety_score: RISK_ORDER[perception.overall_risk] },\n  }}];\n}\n\n// --- Center blocked at high/critical ---\nif (!centerA.clear && RISK_ORDER[centerA.risk] >= 2) {\n  if (bestName === 'LEFT' || bestName === 'RIGHT') {\n    const side = bestName.toLowerCase();\n    const blockage = describeBlockers(centerA.blocking_objects) || 'hazard ahead';\n    return [{ json: {\n      action: bestName,\n      reason: blockage + '. Safest path is ' + side + '.',\n      confidence: bestAnalysis.confidence,\n      timestamp: now,\n      perception_summary: { overall_risk: perception.overall_risk, primary_threat: describeBlockers(objects.filter(o => o.risk === 'HIGH' || o.risk === 'CRITICAL')), threat_count: objects.length },\n      navigation_context: navigation ? { current_step_instruction: navigation.route?.steps?.[navigation.route?.current_step_index || 0]?.instruction || '', remaining_steps: (navigation.route?.steps?.length || 0) - (navigation.route?.current_step_index || 0), next_turn: navigation.route?.steps?.[navigation.route?.current_step_index || 0]?.turn || null } : {},\n      voice_instruction: blockage + '. Move ' + side + '.',\n      debug: { rules_triggered: ['center_blocked'], safety_score: RISK_ORDER[perception.overall_risk], alternative_considered: secondBest },\n    }}];\n  }\n}\n\n// --- Straight clear ---\nif (centerA.clear && centerA.risk === 'LOW') {\n  return [{ json: {\n    action: 'STRAIGHT',\n    reason: 'Path ahead clear. Continue forward.',\n    confidence: centerA.confidence,\n    timestamp: now,\n    perception_summary: { overall_risk: perception.overall_risk, primary_threat: describeBlockers(objects) || 'none', threat_count: objects.length },\n    navigation_context: navigation ? { current_step_instruction: navigation.route?.steps?.[navigation.route?.current_step_index || 0]?.instruction || '', remaining_steps: (navigation.route?.steps?.length || 0) - (navigation.route?.current_step_index || 0), next_turn: navigation.route?.steps?.[navigation.route?.current_step_index || 0]?.turn || null } : {},\n    voice_instruction: 'Path clear. Continue straight.',\n    debug: { rules_triggered: ['path_clear'], safety_score: RISK_ORDER[perception.overall_risk] },\n  }}];\n}\n\n// --- Best side path ---\nif (bestName === 'LEFT' || bestName === 'RIGHT') {\n  const side = bestName.toLowerCase();\n  const blockage = describeBlockers(centerA.blocking_objects) || 'hazard ahead';\n  return [{ json: {\n    action: bestName,\n    reason: blockage + '. Safest path is ' + side + '.',\n    confidence: bestAnalysis.confidence,\n    timestamp: now,\n    perception_summary: { overall_risk: perception.overall_risk, primary_threat: describeBlockers(objects), threat_count: objects.length },\n    navigation_context: navigation ? { current_step_instruction: navigation.route?.steps?.[navigation.route?.current_step_index || 0]?.instruction || '', remaining_steps: (navigation.route?.steps?.length || 0) - (navigation.route?.current_step_index || 0), next_turn: navigation.route?.steps?.[navigation.route?.current_step_index || 0]?.turn || null } : {},\n    voice_instruction: blockage + '. Move ' + side + '.',\n    debug: { rules_triggered: ['side_path'], safety_score: RISK_ORDER[perception.overall_risk], alternative_considered: secondBest },\n  }}];\n}\n\n// --- Cautious straight ---\nif (centerA.risk === 'LOW' || centerA.risk === 'MEDIUM') {\n  return [{ json: {\n    action: 'STRAIGHT',\n    reason: 'Center path has ' + centerA.risk.toLowerCase() + ' risk. Proceed with caution.',\n    confidence: centerA.confidence,\n    timestamp: now,\n    perception_summary: { overall_risk: perception.overall_risk, primary_threat: describeBlockers(objects) || 'low_risk_obstacle', threat_count: objects.length },\n    voice_instruction: 'Path ahead. Continue with caution.',\n    debug: { rules_triggered: ['cautious_straight'], safety_score: RISK_ORDER[centerA.risk] },\n  }}];\n}\n\n// --- Fallback ---\nreturn [{ json: {\n  action: 'WAIT',\n  reason: 'Unable to determine safe path. Waiting.',\n  confidence: perceptionConf,\n  timestamp: now,\n  perception_summary: { overall_risk: perception.overall_risk, primary_threat: describeBlockers(objects), threat_count: objects.length },\n  voice_instruction: 'Wait. Reassessing.',\n  debug: { rules_triggered: ['fallback_wait'], safety_score: RISK_ORDER[perception.overall_risk] },\n}}];\n\nfunction describeBlockers(blockers) {\n  if (!blockers || blockers.length === 0) return null;\n  const types = [...new Set(blockers.map(b => b.type || 'obstacle'))].sort();\n  if (types.length === 1) return types[0] + ' ahead';\n  return types.join(' and ') + ' ahead';\n}\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        300
+      ],
+      "name": "Apply Safety Rules"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        800,
+        300
+      ],
+      "name": "Respond"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Apply Safety Rules",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Apply Safety Rules": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    "safety",
+    "decision"
+  ],
+  "meta": {
+    "templateId": null
+  },
+  "id": "n8n_workflow_safety_decision"
+}

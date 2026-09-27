@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+venv/
+ENV/
+env/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Server
+server/logs/
+server/.env
+
+# Test artifacts
+tests/.coverage
+tests/coverage_report/
+
+# Temporary
+*.tmp
+*.temp
+tmp/
+temp/

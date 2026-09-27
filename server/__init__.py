@@ -1,0 +1,1 @@
+"""AI SafePath server module."""

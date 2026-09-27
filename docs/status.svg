@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="20">
+  <rect width="120" height="20" rx="4" fill="#1a1a2e"/>
+  <text x="60" y="14" text-anchor="middle" font-family="monospace" font-size="11" fill="#e0e0ff">
+    BUILT
+  </text>
+  <rect x="1" y="1" width="118" height="18" rx="3" fill="none" stroke="#00d4ff" stroke-width="1"/>
+</svg>

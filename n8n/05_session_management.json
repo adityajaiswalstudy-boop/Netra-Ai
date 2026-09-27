@@ -1,0 +1,78 @@
+{
+  "name": "05_session_management",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "session",
+        "responseMode": "response",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ],
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Session management: create, update, query\nconst data = items[0].json;\nconst action = data.action || 'get';\n\nif (action === 'create') {\n  const sessionId = data.session_id || ('sess_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8));\n  return [{\n    json: {\n      session_id: sessionId,\n      origin: data.origin || null,\n      destination: data.destination || null,\n      current_location: data.current_location || null,\n      heading_deg: data.heading_deg || null,\n      route: data.route || null,\n      status: 'active',\n      last_perception: null,\n      last_decision: null,\n      last_voice_instruction: null,\n      created_at: Date.now(),\n      updated_at: Date.now(),\n    }\n  }];\n}\n\nif (action === 'update') {\n  // In production, this would read/write from a database.\n  // For n8n Cloud, use the n8n Memory or an external DB.\n  return [{\n    json: {\n      session_id: data.session_id,\n      updated_fields: Object.keys(data).filter(k => k !== 'action' && k !== 'session_id'),\n      updated_at: Date.now(),\n      note: 'In production, persist to database. n8n Memory or Redis recommended.',\n    }\n  }];\n}\n\nif (action === 'get') {\n  return [{\n    json: {\n      session_id: data.session_id,\n      note: 'In production, fetch from database. This demo returns placeholder.',\n      status: 'active',\n    }\n  }];\n}\n\nreturn [{ json: { error: 'Unknown action: ' + action, status: 'error' } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        300
+      ],
+      "name": "Session Handler"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        600,
+        300
+      ],
+      "name": "Respond"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Session Handler",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Session Handler": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    "session"
+  ],
+  "meta": {
+    "templateId": null
+  },
+  "id": "n8n_workflow_session_management"
+}

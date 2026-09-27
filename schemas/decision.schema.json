@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Safety Decision Output",
+  "description": "Final safety decision from the decision engine",
+  "type": "object",
+  "required": ["action", "reason", "confidence", "timestamp"],
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": ["LEFT", "RIGHT", "STRAIGHT", "STOP", "WAIT"],
+      "description": "Final action communicated to the user"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Human-readable explanation",
+      "minLength": 1,
+      "maxLength": 300
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "timestamp": {
+      "type": "number"
+    },
+    "perception_summary": {
+      "type": "object",
+      "properties": {
+        "overall_risk": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+        "primary_threat": { "type": "string" },
+        "threat_count": { "type": "integer" }
+      }
+    },
+    "navigation_context": {
+      "type": "object",
+      "properties": {
+        "current_step_instruction": { "type": "string" },
+        "remaining_steps": { "type": "integer" },
+        "next_turn": { "type": "string", "enum": ["left", "right", "straight", "u-turn", null] }
+      }
+    },
+    "voice_instruction": {
+      "type": "string",
+      "description": "Short voice instruction for TTS",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "debug": {
+      "type": "object",
+      "properties": {
+        "rules_triggered": { "type": "array", "items": { "type": "string" } },
+        "safety_score": { "type": "number" },
+        "alternative_considered": { "type": "string" }
+      }
+    }
+  }
+}

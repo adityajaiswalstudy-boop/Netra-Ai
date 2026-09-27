@@ -1,0 +1,143 @@
+{
+  "name": "01_navigation_start",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "navigation-start",
+        "responseMode": "response",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        200,
+        300
+      ],
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Validate incoming navigation request\nconst data = items[0].json;\n\nconst required = ['origin', 'destination'];\nconst missing = required.filter(k => !data[k]);\nif (missing.length > 0) {\n  return [{ json: { error: 'Missing required fields: ' + missing.join(', '), status: 'error' } }];\n}\n\n// Validate origin/destination have lat/lng\nconst forLoc = ['origin', 'destination'];\nfor (const loc of forLoc) {\n  if (typeof data[loc].lat !== 'number' || typeof data[loc].lng !== 'number') {\n    return [{ json: { error: loc + ' must have numeric lat and lng', status: 'error' } }];\n  }\n}\n\n// Generate session ID\nconst sessionId = 'nav_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);\n\nreturn [{\n  json: {\n    session_id: sessionId,\n    origin: data.origin,\n    destination: data.destination,\n    destination_name: data.destination.name || data.destination.address || 'Destination',\n    status: 'active',\n    created_at: Date.now(),\n    updated_at: Date.now(),\n    navigation_valid: true,\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        300
+      ],
+      "name": "Validate & Generate Session"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://maps.googleapis.com/maps/api/directions/json",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": {
+            "key": "{{ $credentials.GOOGLE_MAPS_API.key }}",
+            "origin": "={{ $json.origin.lat + ',' + $json.origin.lng }}",
+            "destination": "={{ $json.destination.lat + ',' + $json.destination.lng }}",
+            "mode": "walking",
+            "alternatives": "true"
+          }
+        },
+        "options": {
+          "maxRedirects": 2
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        600,
+        300
+      ],
+      "name": "Google Directions API",
+      "credentials": [
+        {
+          "name": "GOOGLE_MAPS_API",
+          "type": "n8n-nodes-base.googleApi"
+        }
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Parse Google Directions API response and extract route steps\nconst data = items[0].json;\n\nif (data.status !== 'OK') {\n  return [{\n    json: {\n      error: 'Directions API error: ' + data.status,\n      status: 'failed',\n      has_route: false,\n    }\n  }];\n}\n\nconst routes = data.routes || [];\nif (routes.length === 0) {\n  return [{\n    json: {\n      error: 'No routes found',\n      status: 'failed',\n      has_route: false,\n    }\n  }];\n}\n\n// Take first route\nconst route = routes[0];\nconst steps = (route.legs || []).flatMap(leg =>\n  (leg.steps || []).map((step, i) => ({\n    instruction: step.html_instructions || step.instructions || 'Continue',\n    distance_m: Math.round((step.distance ? step.distance.value : 0) || 0),\n    duration_s: Math.round((step.duration ? step.duration.value : 0) || 0),\n    turn: infer_turn(step),\n    step_number: i,\n  }))\n);\n\nfunction infer_turn(step) {\n  const html = (step.html_instructions || '').toLowerCase();\n  if (html.includes('turn left')) return 'left';\n  if (html.includes('turn right')) return 'right';\n  if (html.includes('u-turn')) return 'u-turn';\n  if (html.includes('slightly left')) return 'slightly_left';\n  if (html.includes('slightly right')) return 'slightly_right';\n  if (html.includes('straight')) return 'straight';\n  return null;\n}\n\nreturn [{\n  json: {\n    has_route: true,\n    total_distance_m: Math.round(route.legs[0].distance.value || 0),\n    total_duration_s: Math.round(route.legs[0].duration.value || 0),\n    steps: steps,\n    current_step_index: 0,\n    status: 'active',\n  }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        300
+      ],
+      "name": "Parse Route"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1000,
+        300
+      ],
+      "name": "Respond"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate & Generate Session",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Validate & Generate Session": {
+      "main": [
+        [
+          {
+            "node": "Google Directions API",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Google Directions API": {
+      "main": [
+        [
+          {
+            "node": "Parse Route",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Parse Route": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    "navigation",
+    "maps"
+  ],
+  "meta": {
+    "templateId": null
+  },
+  "id": "n8n_workflow_nav_start"
+}
