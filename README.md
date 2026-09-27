@@ -107,7 +107,7 @@ Adapts the Google Maps Routes API v2 response into a clean internal format.
 
 ### n8n Workflows (n8n/)
 
-5 import-ready workflow JSON files. Import these into n8n Cloud and they work.
+5 import-ready workflow JSON files. Validated locally; requires n8n Cloud import and credential configuration for live testing.
 
 | File | Webhook Path | What it does | Status |
 |------|-------------|--------------|--------|
