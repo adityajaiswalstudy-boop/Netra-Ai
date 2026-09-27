@@ -37,3 +37,7 @@ tests/coverage_report/
 *.temp
 tmp/
 temp/
+
+# Temporary test output files
+_t_*
+_test_output*
