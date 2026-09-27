@@ -14,7 +14,7 @@
   // ── Configuration ──
   const CONFIG = {
     // Change these to your n8n Cloud webhook URLs after importing workflows
-    n8nBaseUrl: 'https://aditya8728.app.n8n.cloud/webhook',
+    n8nBaseUrl: 'https://YOUR_N8N_SUBDOMAIN.app.n8n.cloud/webhook',  // ← Replace with your n8n Cloud webhook URL after importing workflows
     endpoints: {
       navigationStart: 'navigation-start',
       perception: 'perception',
@@ -219,6 +219,13 @@
       frame_timestamp_ms: Date.now(),
       session_id: state.session.id,
       device_id: 'mobile_pwa',
+      // GPS coordinates (from device geolocation)
+      latitude: state.gps?.latitude ?? null,
+      longitude: state.gps?.longitude ?? null,
+      // Heading in degrees (0-360, true north), null if not available
+      heading: state.gps?.heading ?? null,
+      // GPS accuracy in meters
+      gps_accuracy_m: state.gps?.accuracy ?? null,
     };
 
     const perResult = await postToN8n(CONFIG.endpoints.perception, perceptionPayload);

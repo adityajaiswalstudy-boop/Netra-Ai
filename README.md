@@ -47,7 +47,7 @@ Adapts the Google Maps Routes API v2 response into a clean internal format.
 
 ### Test Suite (tests/safety/)
 
-45 tests, all passing.
+82 tests, all passing.
 
 **Safety decision engine tests (17):**
 
@@ -81,12 +81,29 @@ Adapts the Google Maps Routes API v2 response into a clean internal format.
 | 27 | Endpoint constants | Correct URL and field mask |
 | 28 | Travel mode | Uses WALK not walking, TRAFFIC_UNAWARE for walking |
 
-**Run:** `python tests/safety/test_decisions.py && python tests/safety/test_maps.py`
-**Result:** 45/45 pass, 0 failures, 0 errors.
+**Vision perception tests (37):**
+
+| # | Test | What it verifies |
+|---|------|------------------||
+| 1-8 | Mock scenarios | All 8 mock scenarios produce valid perception JSON |
+| 9 | Invalid API response | Non-dict/None response → safe fallback |
+| 10 | Malformed perception | Missing required fields → safe fallback |
+| 11 | Missing frame data | No image + no scenario → safe fallback |
+| 12-15 | Label mapping | Vision labels map correctly to object types |
+| 16-20 | Position estimation | Bounding box → position mapping (left/center/right) |
+| 21-25 | Distance estimation | Monocular distance heuristic with confidence |
+| 26-28 | Safety engine integration | Mock perception → correct safety action |
+| 29-33 | Schema validation | validate_perception_dict catches all error types |
+| 34 | Provider enum | VisionProvider has GOOGLE_VISION + MOCK |
+| 35-36 | Entry point | analyze_frame routes to correct provider |
+| 37 | Mock safety scenarios | All 8 mock scenarios produce correct risk/confidence |
+
+**Run:** `python tests/safety/test_decisions.py && python tests/safety/test_maps.py && python tests/safety/test_vision.py`
+**Result:** 82/82 pass, 0 failures, 0 errors.
 
 ### Test Fixtures (tests/fixtures/scenarios.json)
 
-10 JSON fixtures used by the safety tests. Also useful as sample data for manual testing or demo scenarios.
+10 safety test fixtures + 5 mock vision scenarios (tests/fixtures/). Also useful as sample data for manual testing or demo scenarios.
 
 ### n8n Workflows (n8n/)
 
@@ -227,7 +244,7 @@ Netra-Ai/
 │
 ├── tests/                       # Automated tests (45 total, all passing)
 │   ├── fixtures/
-│   │   └── scenarios.json       # 10 safety test fixtures
+│   │   └── scenarios.json       # 10 safety + 5 vision mock fixtures
 │   └── safety/
 │       ├── test_decisions.py    # 17 safety decision engine tests
 │       └── test_maps.py         # 28 Maps mapper tests
@@ -260,6 +277,7 @@ Netra-Ai/
 cd Netra-Ai
 python tests/safety/test_decisions.py
 python tests/safety/test_maps.py
+python tests/safety/test_vision.py
 
 # Start local mock server
 pip install flask requests

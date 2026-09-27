@@ -1,0 +1,730 @@
+{
+  "description": "Vision benchmark fixtures \u2014 8 pedestrian scenes with expected Vision API responses and ground-truth perception + safety decisions. These are MOCK fixtures for testing the adapter and pipeline without a real API key.",
+  "scenarios": [
+    {
+      "id": "bench_01_pole_center",
+      "name": "Pole in center",
+      "description": "A single pole directly ahead in the walking path",
+      "image_description": "Pedestrian walking path, single pole at center, ~4m ahead",
+      "vision_mock": {
+        "labelAnnotations": [
+          {
+            "description": "pole",
+            "score": 0.92
+          },
+          {
+            "description": "street",
+            "score": 0.75
+          },
+          {
+            "description": "sidewalk",
+            "score": 0.68
+          }
+        ],
+        "localizedObjectAnnotations": [
+          {
+            "name": "pole",
+            "score": 0.91,
+            "boundingPoly": {
+              "normalizedVertices": [
+                {
+                  "x": 0.45,
+                  "y": 0.35
+                },
+                {
+                  "x": 0.55,
+                  "y": 0.35
+                },
+                {
+                  "x": 0.55,
+                  "y": 0.65
+                },
+                {
+                  "x": 0.45,
+                  "y": 0.65
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expected_perception": {
+        "scene_summary": "Detected: pole. Hazard ahead.",
+        "objects": [
+          {
+            "type": "pole",
+            "position": "center",
+            "estimated_distance_m": 6.0,
+            "distance_confidence": 0.55,
+            "blocks_path": true,
+            "risk": "HIGH"
+          }
+        ],
+        "left_path": {
+          "clear": true,
+          "risk": "LOW",
+          "confidence": 0.85
+        },
+        "center_path": {
+          "clear": false,
+          "risk": "HIGH",
+          "confidence": 0.85
+        },
+        "right_path": {
+          "clear": true,
+          "risk": "LOW",
+          "confidence": 0.85
+        },
+        "overall_risk": "HIGH",
+        "confidence": 0.85
+      },
+      "expected_safety_decision": {
+        "action": "LEFT",
+        "risk_level": "HIGH",
+        "reason": "Pole detected in center path at ~6m. Left path clear.",
+        "confidence": 0.85,
+        "alternative_notes": "Right path also clear, but LEFT preferred as primary evasive action per rule priority."
+      }
+    },
+    {
+      "id": "bench_02_person_center",
+      "name": "Person in center",
+      "description": "A pedestrian standing/walking in the path ahead",
+      "image_description": "Pedestrian walking path, person at center, ~5m ahead",
+      "vision_mock": {
+        "labelAnnotations": [
+          {
+            "description": "person",
+            "score": 0.95
+          },
+          {
+            "description": "people",
+            "score": 0.85
+          }
+        ],
+        "localizedObjectAnnotations": [
+          {
+            "name": "person",
+            "score": 0.94,
+            "boundingPoly": {
+              "normalizedVertices": [
+                {
+                  "x": 0.4,
+                  "y": 0.3
+                },
+                {
+                  "x": 0.6,
+                  "y": 0.3
+                },
+                {
+                  "x": 0.6,
+                  "y": 0.7
+                },
+                {
+                  "x": 0.4,
+                  "y": 0.7
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expected_perception": {
+        "scene_summary": "Detected: person. Hazard ahead.",
+        "objects": [
+          {
+            "type": "person",
+            "position": "center",
+            "estimated_distance_m": 6.0,
+            "distance_confidence": 0.55,
+            "blocks_path": true,
+            "risk": "HIGH"
+          }
+        ],
+        "left_path": {
+          "clear": true,
+          "risk": "LOW",
+          "confidence": 0.85
+        },
+        "center_path": {
+          "clear": false,
+          "risk": "HIGH",
+          "confidence": 0.85
+        },
+        "right_path": {
+          "clear": true,
+          "risk": "LOW",
+          "confidence": 0.85
+        },
+        "overall_risk": "HIGH",
+        "confidence": 0.85
+      },
+      "expected_safety_decision": {
+        "action": "LEFT",
+        "risk_level": "HIGH",
+        "reason": "Person detected in center path at ~6m. Left path clear.",
+        "confidence": 0.85,
+        "alternative_notes": "Person is dynamic \u2014 risk of collision if path not changed. LEFT is preferred evasive action."
+      }
+    },
+    {
+      "id": "bench_03_vehicle_center",
+      "name": "Vehicle in center",
+      "description": "A vehicle (car/bike) in the walking path \u2014 highest danger",
+      "image_description": "Pedestrian path, vehicle at center, ~6m ahead",
+      "vision_mock": {
+        "labelAnnotations": [
+          {
+            "description": "car",
+            "score": 0.93
+          },
+          {
+            "description": "vehicle",
+            "score": 0.88
+          }
+        ],
+        "localizedObjectAnnotations": [
+          {
+            "name": "car",
+            "score": 0.92,
+            "boundingPoly": {
+              "normalizedVertices": [
+                {
+                  "x": 0.35,
+                  "y": 0.25
+                },
+                {
+                  "x": 0.65,
+                  "y": 0.25
+                },
+                {
+                  "x": 0.65,
+                  "y": 0.6
+                },
+                {
+                  "x": 0.35,
+                  "y": 0.6
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expected_perception": {
+        "scene_summary": "Detected: vehicle. Critical hazard ahead.",
+        "objects": [
+          {
+            "type": "vehicle",
+            "position": "center",
+            "estimated_distance_m": 7.0,
+            "distance_confidence": 0.55,
+            "blocks_path": true,
+            "risk": "CRITICAL"
+          }
+        ],
+        "left_path": {
+          "clear": true,
+          "risk": "LOW",
+          "confidence": 0.85
+        },
+        "center_path": {
+          "clear": false,
+          "risk": "CRITICAL",
+          "confidence": 0.9
+        },
+        "right_path": {
+          "clear": true,
+          "risk": "LOW",
+          "confidence": 0.85
+        },
+        "overall_risk": "CRITICAL",
+        "confidence": 0.9
+      },
+      "expected_safety_decision": {
+        "action": "STOP",
+        "risk_level": "CRITICAL",
+        "reason": "Vehicle detected in center path at ~7m. IMMEDIATE STOP required. Cannot safely evade \u2014 vehicle is large and fast-moving relative to pedestrian.",
+        "confidence": 0.9,
+        "alternative_notes": "Vehicle is the highest-risk object. STOP is mandatory. Do NOT attempt LEFT/RIGHT evasion unless path is confirmed clear AND user is warned."
+      }
+    },
+    {
+      "id": "bench_04_road_right",
+      "name": "Road visible on right",
+      "description": "Walking path with road on the right side \u2014 caution for vehicles",
+      "image_description": "Pedestrian path, road visible on right side, no immediate hazard",
+      "vision_mock": {
+        "labelAnnotations": [
+          {
+            "description": "road",
+            "score": 0.85
+          },
+          {
+            "description": "street",
+            "score": 0.78
+          },
+          {
+            "description": "car",
+            "score": 0.45
+          }
+        ],
+        "localizedObjectAnnotations": [
+          {
+            "name": "road",
+            "score": 0.84,
+            "boundingPoly": {
+              "normalizedVertices": [
+                {
+                  "x": 0.65,
+                  "y": 0.1
+                },
+                {
+                  "x": 0.95,
+                  "y": 0.1
+                },
+                {
+                  "x": 0.95,
+                  "y": 0.9
+                },
+                {
+                  "x": 0.65,
+                  "y": 0.9
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expected_perception": {
+        "scene_summary": "Detected: road. Right side has traffic corridor.",
+        "objects": [
+          {
+            "type": "road",
+            "position": "right",
+            "estimated_distance_m": 5.0,
+            "distance_confidence": 0.5,
+            "blocks_path": false,
+            "risk": "LOW"
+          }
+        ],
+        "left_path": {
+          "clear": true,
+          "risk": "LOW",
+          "confidence": 0.85
+        },
+        "center_path": {
+          "clear": true,
+          "risk": "LOW",
+          "confidence": 0.85
+        },
+        "right_path": {
+          "clear": false,
+          "risk": "MEDIUM",
+          "confidence": 0.7
+        },
+        "overall_risk": "MEDIUM",
+        "confidence": 0.8
+      },
+      "expected_safety_decision": {
+        "action": "STRAIGHT",
+        "risk_level": "MEDIUM",
+        "reason": "Road visible on right \u2014 caution advised. Center and left paths clear. Continuing straight with awareness.",
+        "confidence": 0.8,
+        "alternative_notes": "Right path has road \u2014 MEDIUM risk. User should be warned about proximity to traffic. STRAIGHT is safe with caution."
+      }
+    },
+    {
+      "id": "bench_05_sidewalk_left",
+      "name": "Sidewalk visible on left",
+      "description": "Walking path with clear sidewalk on left side",
+      "image_description": "Pedestrian path, clear sidewalk on left, center path open",
+      "vision_mock": {
+        "labelAnnotations": [
+          {
+            "description": "sidewalk",
+            "score": 0.82
+          },
+          {
+            "description": "path",
+            "score": 0.75
+          }
+        ],
+        "localizedObjectAnnotations": [
+          {
+            "name": "sidewalk",
+            "score": 0.81,
+            "boundingPoly": {
+              "normalizedVertices": [
+                {
+                  "x": 0.05,
+                  "y": 0.1
+                },
+                {
+                  "x": 0.3,
+                  "y": 0.1
+                },
+                {
+                  "x": 0.3,
+                  "y": 0.9
+                },
+                {
+                  "x": 0.05,
+                  "y": 0.9
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expected_perception": {
+        "scene_summary": "Detected: sidewalk. Left path has clear pedestrian corridor.",
+        "objects": [
+          {
+            "type": "sidewalk",
+            "position": "left",
+            "estimated_distance_m": 3.0,
+            "distance_confidence": 0.55,
+            "blocks_path": false,
+            "risk": "LOW"
+          }
+        ],
+        "left_path": {
+          "clear": true,
+          "risk": "LOW",
+          "confidence": 0.88
+        },
+        "center_path": {
+          "clear": true,
+          "risk": "LOW",
+          "confidence": 0.85
+        },
+        "right_path": {
+          "clear": true,
+          "risk": "LOW",
+          "confidence": 0.85
+        },
+        "overall_risk": "LOW",
+        "confidence": 0.85
+      },
+      "expected_safety_decision": {
+        "action": "STRAIGHT",
+        "risk_level": "LOW",
+        "reason": "All paths clear. Sidewalk on left provides additional safe walking corridor. Continuing straight.",
+        "confidence": 0.85,
+        "alternative_notes": "Clear path \u2014 STRAIGHT is safe. Sidewalk on left is a bonus safe corridor if needed."
+      }
+    },
+    {
+      "id": "bench_06_construction_barrier",
+      "name": "Construction barrier",
+      "description": "Construction barrier blocking part of the path",
+      "image_description": "Pedestrian path, construction barrier ahead, partially blocking",
+      "vision_mock": {
+        "labelAnnotations": [
+          {
+            "description": "construction",
+            "score": 0.88
+          },
+          {
+            "description": "barrier",
+            "score": 0.82
+          },
+          {
+            "description": "fence",
+            "score": 0.7
+          }
+        ],
+        "localizedObjectAnnotations": [
+          {
+            "name": "barrier",
+            "score": 0.81,
+            "boundingPoly": {
+              "normalizedVertices": [
+                {
+                  "x": 0.3,
+                  "y": 0.3
+                },
+                {
+                  "x": 0.7,
+                  "y": 0.3
+                },
+                {
+                  "x": 0.7,
+                  "y": 0.6
+                },
+                {
+                  "x": 0.3,
+                  "y": 0.6
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expected_perception": {
+        "scene_summary": "Detected: construction barrier. Path partially blocked.",
+        "objects": [
+          {
+            "type": "construction_barrier",
+            "position": "center",
+            "estimated_distance_m": 6.0,
+            "distance_confidence": 0.55,
+            "blocks_path": true,
+            "risk": "HIGH"
+          }
+        ],
+        "left_path": {
+          "clear": true,
+          "risk": "LOW",
+          "confidence": 0.85
+        },
+        "center_path": {
+          "clear": false,
+          "risk": "HIGH",
+          "confidence": 0.85
+        },
+        "right_path": {
+          "clear": true,
+          "risk": "LOW",
+          "confidence": 0.85
+        },
+        "overall_risk": "HIGH",
+        "confidence": 0.85
+      },
+      "expected_safety_decision": {
+        "action": "LEFT",
+        "risk_level": "HIGH",
+        "reason": "Construction barrier blocking center path at ~6m. Left path clear \u2014 evade left.",
+        "confidence": 0.85,
+        "alternative_notes": "Barrier is a static obstacle. LEFT evasive action is safe. Right path also clear as backup."
+      }
+    },
+    {
+      "id": "bench_07_clear_path",
+      "name": "Clear path",
+      "description": "Unobstructed walking path \u2014 ideal scenario",
+      "image_description": "Clear pedestrian path, no obstacles, open ahead",
+      "vision_mock": {
+        "labelAnnotations": [
+          {
+            "description": "sidewalk",
+            "score": 0.78
+          },
+          {
+            "description": "path",
+            "score": 0.72
+          },
+          {
+            "description": "street",
+            "score": 0.55
+          }
+        ],
+        "localizedObjectAnnotations": []
+      },
+      "expected_perception": {
+        "scene_summary": "Scene analyzed. No prominent obstacles detected.",
+        "objects": [],
+        "left_path": {
+          "clear": true,
+          "risk": "LOW",
+          "confidence": 0.85
+        },
+        "center_path": {
+          "clear": true,
+          "risk": "LOW",
+          "confidence": 0.85
+        },
+        "right_path": {
+          "clear": true,
+          "risk": "LOW",
+          "confidence": 0.85
+        },
+        "overall_risk": "LOW",
+        "confidence": 0.85
+      },
+      "expected_safety_decision": {
+        "action": "STRAIGHT",
+        "risk_level": "LOW",
+        "reason": "All paths clear. No obstacles detected. Continuing straight.",
+        "confidence": 0.85,
+        "alternative_notes": "Ideal walking conditions. Maintain forward path."
+      }
+    },
+    {
+      "id": "bench_08_multiple_obstacles",
+      "name": "Multiple obstacles",
+      "description": "Multiple obstacles in different positions \u2014 complex scenario",
+      "image_description": "Pedestrian path with pole on left, vehicle on right, person at center",
+      "vision_mock": {
+        "labelAnnotations": [
+          {
+            "description": "person",
+            "score": 0.9
+          },
+          {
+            "description": "car",
+            "score": 0.85
+          },
+          {
+            "description": "pole",
+            "score": 0.78
+          },
+          {
+            "description": "street",
+            "score": 0.65
+          }
+        ],
+        "localizedObjectAnnotations": [
+          {
+            "name": "pole",
+            "score": 0.77,
+            "boundingPoly": {
+              "normalizedVertices": [
+                {
+                  "x": 0.1,
+                  "y": 0.4
+                },
+                {
+                  "x": 0.2,
+                  "y": 0.4
+                },
+                {
+                  "x": 0.2,
+                  "y": 0.7
+                },
+                {
+                  "x": 0.1,
+                  "y": 0.7
+                }
+              ]
+            }
+          },
+          {
+            "name": "person",
+            "score": 0.89,
+            "boundingPoly": {
+              "normalizedVertices": [
+                {
+                  "x": 0.4,
+                  "y": 0.3
+                },
+                {
+                  "x": 0.6,
+                  "y": 0.3
+                },
+                {
+                  "x": 0.6,
+                  "y": 0.65
+                },
+                {
+                  "x": 0.4,
+                  "y": 0.65
+                }
+              ]
+            }
+          },
+          {
+            "name": "car",
+            "score": 0.84,
+            "boundingPoly": {
+              "normalizedVertices": [
+                {
+                  "x": 0.7,
+                  "y": 0.25
+                },
+                {
+                  "x": 0.9,
+                  "y": 0.25
+                },
+                {
+                  "x": 0.9,
+                  "y": 0.55
+                },
+                {
+                  "x": 0.7,
+                  "y": 0.55
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "expected_perception": {
+        "scene_summary": "Detected: pole, person, vehicle. Multiple hazards.",
+        "objects": [
+          {
+            "type": "pole",
+            "position": "left",
+            "estimated_distance_m": 8.0,
+            "distance_confidence": 0.5,
+            "blocks_path": true,
+            "risk": "MEDIUM"
+          },
+          {
+            "type": "person",
+            "position": "center",
+            "estimated_distance_m": 7.0,
+            "distance_confidence": 0.55,
+            "blocks_path": true,
+            "risk": "HIGH"
+          },
+          {
+            "type": "vehicle",
+            "position": "right",
+            "estimated_distance_m": 7.0,
+            "distance_confidence": 0.55,
+            "blocks_path": true,
+            "risk": "CRITICAL"
+          }
+        ],
+        "left_path": {
+          "clear": false,
+          "risk": "MEDIUM",
+          "confidence": 0.75
+        },
+        "center_path": {
+          "clear": false,
+          "risk": "HIGH",
+          "confidence": 0.85
+        },
+        "right_path": {
+          "clear": false,
+          "risk": "CRITICAL",
+          "confidence": 0.9
+        },
+        "overall_risk": "CRITICAL",
+        "confidence": 0.85
+      },
+      "expected_safety_decision": {
+        "action": "STOP",
+        "risk_level": "CRITICAL",
+        "reason": "Multiple obstacles: pole left (MEDIUM), person center (HIGH), vehicle right (CRITICAL). All paths have hazards. STOP and assess.",
+        "confidence": 0.85,
+        "alternative_notes": "Vehicle on right at CRITICAL risk is the dominant threat. All paths compromised \u2014 STOP is safest. User must assess manually before proceeding."
+      }
+    }
+  ],
+  "benchmark_harness": {
+    "description": "How to run the benchmark",
+    "steps": [
+      "1. Load each scenario fixture",
+      "2. Call analyze_frame() with the mock Vision response (via MOCK provider or direct mock injection)",
+      "3. Compare output perception against expected_perception",
+      "4. Pass perception through safety_engine.decide()",
+      "5. Compare decision against expected_safety_decision",
+      "6. Record pass/fail for each scenario",
+      "7. Generate benchmark report with per-scenario details"
+    ],
+    "metrics": [
+      "Perception accuracy: % of scenarios where output matches expected",
+      "Object detection rate: % of expected objects detected",
+      "Position accuracy: % of objects with correct position",
+      "Distance estimate accuracy: average error in estimated_distance_m",
+      "Risk classification accuracy: % of objects with correct risk level",
+      "Path classification accuracy: % of paths correctly classified",
+      "Safety decision accuracy: % of scenarios with correct action",
+      "Overall pipeline accuracy: end-to-end correct decisions"
+    ],
+    "note": "These fixtures represent EXPECTED behavior. Real Vision API results will vary. When a real API key is available, run the same harness against live API responses and compare."
+  }
+}

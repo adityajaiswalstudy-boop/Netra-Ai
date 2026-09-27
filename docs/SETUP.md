@@ -100,7 +100,7 @@ The `mobile/manifest.json` enables PWA installation. For production:
 
 - [ ] n8n Cloud account access
 - [ ] Import 5 workflows to n8n
-- [ ] Create Google Maps API key with Directions API enabled
+- [ ] Create Google Maps API key with Routes API enabled
 - [ ] Create Vision API key (or decide on LLM provider)
 - [ ] Create Google Cloud TTS credentials
 - [ ] Copy `.env.example` to `.env` and fill values

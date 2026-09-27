@@ -7,7 +7,8 @@
         "responseMode": "response",
         "options": {
           "rawBody": false
-        }
+        },
+        "httpMethod": "POST"
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
@@ -68,18 +69,6 @@
         300
       ],
       "name": "Convert to Perception Schema"
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [
-        1000,
-        300
-      ],
-      "name": "Respond"
     }
   ],
   "connections": {

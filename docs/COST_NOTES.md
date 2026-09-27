@@ -2,7 +2,7 @@
 
 ## API Costs
 
-### Google Maps Platform — Directions API
+### Google Maps Platform — Routes API v2
 
 | Item | Details |
 |------|---------|
@@ -11,9 +11,9 @@
 | Demo usage | ~1 request per navigation session |
 | Production cost | $5 per 1000 requests after free tier |
 | Billing required | Yes (credit card on Google Cloud) |
-| Credential | API key with Directions API enabled |
+| Credential | API key with Routes API enabled |
 
-**Demo cost estimate**: One demo session = 1 Directions API call = $0.00 (within free tier)
+**Demo cost estimate**: One demo session = 1 Routes API call = $0.00 (within free tier)
 
 ### Google Cloud Vision API
 
@@ -65,7 +65,7 @@ Vision model choice can significantly affect cost for high-frequency capture.
 
 | API | Demo Calls | Cost |
 |-----|-----------|------|
-| Directions API | 1 | $0.00 |
+| Routes API v2 | 1 | $0.00 |
 | Vision API | 20 | $0.00 |
 | Cloud TTS | 1000 chars | $0.00 |
 | **Total** | | **$0.00** |
@@ -80,7 +80,7 @@ Assumptions: 10 navigation sessions per day, 20 camera frames per session, 5 voi
 
 | API | Daily Calls | Monthly Cost |
 |-----|------------|--------------|
-| Directions API | 10 | $0.00 (within free tier) |
+| Routes API v2 | 10 | $0.00 (within free tier) |
 | Vision API (Vision API) | 200 | $0.00 (within free tier) |
 | Cloud TTS | 5000 chars | $0.00 (within free tier) |
 | **Total** | | **$0.00** |
@@ -88,7 +88,7 @@ Assumptions: 10 navigation sessions per day, 20 camera frames per session, 5 voi
 Even at moderate usage, all APIs stay within free tiers.
 
 At scale (1000 users, 10 sessions/day each):
-- Directions API: 10,000 calls/day = $50/day after free tier
+- Routes API v2: 10,000 calls/day = $50/day after free tier
 - Vision API: 200,000 calls/day = $300/day
 - TTS: 5M chars/day = $20/day
 - Total: ~$370/day
@@ -111,7 +111,7 @@ For demo purposes, the free tier may be sufficient. For production, check n8n Cl
 
 1. **Reduce capture frequency** — 2s intervals are reasonable; 5s would reduce Vision API calls
 2. **Use cheaper vision models** — Gemini Flash or Claude Haiku for production
-3. **Cache routes** — Directions API calls are rare (once per session), not a cost driver
+3. **Cache routes** — Routes API calls are rare (once per session), not a cost driver
 4. **Browser TTS fallback** — avoid Cloud TTS for simple instructions
 5. **Local processing** — on-device object detection eliminates Vision API costs entirely
 

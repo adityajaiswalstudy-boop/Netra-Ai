@@ -7,7 +7,8 @@
         "responseMode": "response",
         "options": {
           "rawBody": false
-        }
+        },
+        "httpMethod": "POST"
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 1,
@@ -40,18 +41,6 @@
         300
       ],
       "name": "Apply Safety Rules"
-    },
-    {
-      "parameters": {
-        "options": {}
-      },
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [
-        800,
-        300
-      ],
-      "name": "Respond"
     }
   ],
   "connections": {

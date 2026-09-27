@@ -62,9 +62,9 @@
 
 ## API Issues
 
-### Directions API returns ZERO_RESULTS
+### Routes API v2 returns ZERO_RESULTS
 - Check origin and destination are valid coordinates
-- Check the API key has Directions API enabled
+- Check the API key has Routes API enabled
 - Try a different destination
 
 ### Vision API returns empty labels
