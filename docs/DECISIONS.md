@@ -231,6 +231,40 @@
 
 ---
 
+
+### D13: Google Maps Routes API v2 over Directions API
+
+**Decision**: Use the Google Maps Routes API v2 (GA since 2023) instead of the legacy Directions API.
+
+**Why**:
+- **Current**: Routes API v2 is the current, recommended API for new projects
+- **Better data**: Returns structured legs with navigationInstruction (maneuver enum + instructions text)
+- **Field masks**: Only request the fields you need — reduces response size
+- **Auth model**: X-Goog-Api-Key header is cleaner than query parameter for API key
+- **Duration format**: ISO 8601 duration strings are unambiguous
+- **WALK travel mode**: Explicit walking mode with appropriate routing
+
+**Migration details**:
+- Old endpoint: `GET https://maps.googleapis.com/maps/api/directions/json?origin=...&destination=...&mode=walking`
+- New endpoint: `POST https://routes.googleapis.com/directions/v2:computeRoutes`
+- Auth: `X-Goog-Api-Key: <key>` header + `X-Goog-FieldMask: <fields>` header
+- Travel mode: `travelMode: "WALK"` (not `mode: "walking"`)
+- Duration: ISO 8601 string ("780s") parsed to integer seconds by the mapper
+- Steps: `navigationInstruction.maneuver` (enum) + `navigationInstruction.instructions` (text)
+- Origin/destination: `{location: {latLng: {latitude, longitude}}}` (not `lat,lng` string)
+
+**Implementation**:
+- `server/maps_mapper.py` — Python adapter with duration parsing, maneuver mapping, mock generator
+- `n8n/01_navigation_start.json` — Updated HTTP Request node to use Routes API v2
+- `tests/safety/test_maps.py` — 28 tests covering the mapper
+
+**Alternatives considered**:
+- **Stay on Directions API**: Simpler but deprecated for new projects, less structured response
+- **Mapbox Directions API**: Different provider, would need different integration
+- **OpenStreetMap routing**: Free but less reliable for pedestrian routing
+
+**Rejected**: Staying on the Directions API would mean using a deprecated API with a less structured response format.
+
 ## Future Decision Points
 
 These are not yet decided and may need to be addressed:

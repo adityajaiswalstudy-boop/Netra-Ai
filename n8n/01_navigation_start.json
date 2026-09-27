@@ -19,7 +19,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\n// Validate incoming navigation request\nconst data = items[0].json;\n\nconst required = ['origin', 'destination'];\nconst missing = required.filter(k => !data[k]);\nif (missing.length > 0) {\n  return [{ json: { error: 'Missing required fields: ' + missing.join(', '), status: 'error' } }];\n}\n\n// Validate origin/destination have lat/lng\nconst forLoc = ['origin', 'destination'];\nfor (const loc of forLoc) {\n  if (typeof data[loc].lat !== 'number' || typeof data[loc].lng !== 'number') {\n    return [{ json: { error: loc + ' must have numeric lat and lng', status: 'error' } }];\n  }\n}\n\n// Generate session ID\nconst sessionId = 'nav_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);\n\nreturn [{\n  json: {\n    session_id: sessionId,\n    origin: data.origin,\n    destination: data.destination,\n    destination_name: data.destination.name || data.destination.address || 'Destination',\n    status: 'active',\n    created_at: Date.now(),\n    updated_at: Date.now(),\n    navigation_valid: true,\n  }\n}];\n"
+        "jsCode": "\n// Validate incoming navigation request\nconst data = items[0].json;\n\nconst required = ['origin', 'destination'];\nconst missing = required.filter(k => !data[k]);\nif (missing.length > 0) {\n  return [{ json: { error: 'Missing required fields: ' + missing.join(', '), status: 'error' } }];\n}\n\n// Validate origin/destination have lat/lng\nconst forLoc = ['origin', 'destination'];\nfor (const loc of forLoc) {\n  if (typeof data[loc].lat !== 'number' || typeof data[loc].lng !== 'number') {\n    return [{ json: { error: loc + ' must have numeric lat and lng', status: 'error' } }];\n  }\n}\n\n// Generate session ID\nconst sessionId = 'nav_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);\n\nreturn [{\n  json: {\n    session_id: sessionId,\n    origin: data.origin,\n    destination: data.destination,\n    destination_name: data.destination.name || data.destination.address || 'Destination',\n    status: 'active',\n    created_at: Date.now(),\n    updated_at: Date.now(),\n  }\n}];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -32,19 +32,22 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://maps.googleapis.com/maps/api/directions/json",
+        "url": "https://routes.googleapis.com/directions/v2:computeRoutes",
         "sendBody": true,
         "bodyParameters": {
           "parameters": {
-            "key": "{{ $credentials.GOOGLE_MAPS_API.key }}",
-            "origin": "={{ $json.origin.lat + ',' + $json.origin.lng }}",
-            "destination": "={{ $json.destination.lat + ',' + $json.destination.lng }}",
-            "mode": "walking",
-            "alternatives": "true"
+            "origin": "={{ JSON.stringify({ location: { latLng: { latitude: $json.origin.lat, longitude: $json.origin.lng } } }) }}",
+            "destination": "={{ JSON.stringify({ location: { latLng: { latitude: $json.destination.lat, longitude: $json.destination.lng } } }) }}",
+            "travelMode": "WALK",
+            "routingPreference": "TRAFFIC_UNAWARE"
           }
         },
         "options": {
-          "maxRedirects": 2
+          "maxRedirects": 2,
+          "headers": {
+            "X-Goog-Api-Key": "={{ $credentials.GOOGLE_MAPS_API.key }}",
+            "X-Goog-FieldMask": "routes.duration,routes.distanceMeters,routes.polyline,routes.legs,routes.warnings"
+          }
         }
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -53,17 +56,17 @@
         600,
         300
       ],
-      "name": "Google Directions API",
+      "name": "Google Routes API v2",
       "credentials": [
         {
           "name": "GOOGLE_MAPS_API",
-          "type": "n8n-nodes-base.googleApi"
+          "type": "n8n-nodes-base.httpRequest"
         }
       ]
     },
     {
       "parameters": {
-        "jsCode": "\n// Parse Google Directions API response and extract route steps\nconst data = items[0].json;\n\nif (data.status !== 'OK') {\n  return [{\n    json: {\n      error: 'Directions API error: ' + data.status,\n      status: 'failed',\n      has_route: false,\n    }\n  }];\n}\n\nconst routes = data.routes || [];\nif (routes.length === 0) {\n  return [{\n    json: {\n      error: 'No routes found',\n      status: 'failed',\n      has_route: false,\n    }\n  }];\n}\n\n// Take first route\nconst route = routes[0];\nconst steps = (route.legs || []).flatMap(leg =>\n  (leg.steps || []).map((step, i) => ({\n    instruction: step.html_instructions || step.instructions || 'Continue',\n    distance_m: Math.round((step.distance ? step.distance.value : 0) || 0),\n    duration_s: Math.round((step.duration ? step.duration.value : 0) || 0),\n    turn: infer_turn(step),\n    step_number: i,\n  }))\n);\n\nfunction infer_turn(step) {\n  const html = (step.html_instructions || '').toLowerCase();\n  if (html.includes('turn left')) return 'left';\n  if (html.includes('turn right')) return 'right';\n  if (html.includes('u-turn')) return 'u-turn';\n  if (html.includes('slightly left')) return 'slightly_left';\n  if (html.includes('slightly right')) return 'slightly_right';\n  if (html.includes('straight')) return 'straight';\n  return null;\n}\n\nreturn [{\n  json: {\n    has_route: true,\n    total_distance_m: Math.round(route.legs[0].distance.value || 0),\n    total_duration_s: Math.round(route.legs[0].duration.value || 0),\n    steps: steps,\n    current_step_index: 0,\n    status: 'active',\n  }\n}];\n"
+        "jsCode": "\n// Parse Google Routes API v2 response and extract route steps\nconst data = items[0].json;\n\n// Handle API errors\nif (data.error) {\n  return [{\n    json: {\n      error: 'Routes API error: ' + (data.error.message || JSON.stringify(data.error)),\n      status: 'failed',\n      has_route: false,\n    }\n  }];\n}\n\nconst routes = data.routes || [];\nif (routes.length === 0) {\n  return [{\n    json: {\n      error: 'No routes found for this origin/destination',\n      status: 'failed',\n      has_route: false,\n    }\n  }];\n}\n\n// Take first (best) route\nconst route = routes[0];\n\nfunction parseDuration(raw) {\n  if (!raw) return 0;\n  raw = String(raw).trim();\n  // Handle \"Ns\" format\n  const secMatch = raw.match(/^(\\d+)s$/);\n  if (secMatch) return parseInt(secMatch[1], 10);\n  // Handle ISO 8601 duration: PT3M, PT1H30M, PT45S\n  const isoMatch = raw.match(/^PT(?:(\\d+)H)?(?:(\\d+)M)?(?:(\\d+)S)?$/);\n  if (isoMatch) {\n    const h = parseInt(isoMatch[1] || 0, 10);\n    const m = parseInt(isoMatch[2] || 0, 10);\n    const s = parseInt(isoMatch[3] || 0, 10);\n    return h * 3600 + m * 60 + s;\n  }\n  // Fallback: extract any number\n  const numMatch = raw.match(/(\\d+)/);\n  return numMatch ? parseInt(numMatch[1], 10) : 0;\n}\n\nfunction extractLatLng(loc) {\n  if (!loc) return { lat: 0, lng: 0 };\n  const ll = loc.latLng || {};\n  return { lat: ll.latitude || 0, lng: ll.longitude || 0 };\n}\n\nconst legs = route.legs || [];\nif (legs.length === 0) {\n  return [{\n    json: { error: 'Route has no legs', status: 'failed', has_route: false }\n  }];\n}\n\nconst leg = legs[0];\nconst rawSteps = leg.steps || [];\n\nconst steps = rawSteps.map((step, i) => {\n  const nav = step.navigationInstruction || {};\n  let maneuver = 'straight';\n  const m = (nav.maneuver || '').toUpperCase();\n  if (m.includes('LEFT')) maneuver = 'left';\n  else if (m.includes('RIGHT')) maneuver = 'right';\n  else if (m === 'UTURN_LEFT' || m === 'UTURN_RIGHT') maneuver = 'u-turn';\n  else if (m === 'DESTINATION') maneuver = 'destination';\n  else if (m.includes('SLIGHT')) maneuver = m.includes('LEFT') ? 'slightly_left' : 'slightly_right';\n  else if (m === 'STRAIGHT') maneuver = 'straight';\n\n  return {\n    instruction: nav.instructions || 'Continue',\n    distance_m: step.distanceMeters || 0,\n    duration_s: parseDuration(step.duration),\n    turn: maneuver,\n    step_number: i,\n    start_location: extractLatLng(step.startLocation),\n    end_location: extractLatLng(step.endLocation),\n  };\n});\n\nreturn [{\n  json: {\n    has_route: true,\n    total_distance_m: route.distanceMeters || 0,\n    total_duration_s: parseDuration(route.duration),\n    steps: steps,\n    current_step_index: 0,\n    polyline: (route.polyline || {}).encodedPolyline || null,\n    warnings: route.warnings || [],\n    status: 'active',\n    start_location: extractLatLng(leg.startLocation),\n    end_location: extractLatLng(leg.endLocation),\n  }\n}];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -71,7 +74,7 @@
         800,
         300
       ],
-      "name": "Parse Route"
+      "name": "Parse Routes API Response"
     },
     {
       "parameters": {
@@ -101,23 +104,23 @@
       "main": [
         [
           {
-            "node": "Google Directions API",
+            "node": "Google Routes API v2",
             "type": "main"
           }
         ]
       ]
     },
-    "Google Directions API": {
+    "Google Routes API v2": {
       "main": [
         [
           {
-            "node": "Parse Route",
+            "node": "Parse Routes API Response",
             "type": "main"
           }
         ]
       ]
     },
-    "Parse Route": {
+    "Parse Routes API Response": {
       "main": [
         [
           {
@@ -134,7 +137,8 @@
   "staticData": null,
   "tags": [
     "navigation",
-    "maps"
+    "maps",
+    "routes_api_v2"
   ],
   "meta": {
     "templateId": null

@@ -19,7 +19,7 @@
     },
     {
       "parameters": {
-        "jsCode": "\n// Validate voice request\nconst data = items[0].json;\nif (!data.text || typeof data.text !== 'string' || data.text.trim().length === 0) {\n  return [{ json: { error: 'Missing or empty text for TTS', status: 'error' } }];\n}\nif (!data.language) {\n  return [{ json: { error: 'Missing language parameter', status: 'error' } }];\n}\nreturn [{\n  json: {\n    text: data.text.trim(),\n    language: data.language,\n    voice_name: data.voice_name || 'en-US-Standard-A',\n    pitch: data.pitch || 1.0,\n    speaking_rate: data.speaking_rate || 1.0,\n    session_id: data.session_id || 'unknown',\n  }\n}];\n"
+        "jsCode": "\n// Validate voice request\nconst data = items[0].json;\nif (!data.text || typeof data.text !== 'string' || data.text.trim().length === 0) {\n  return [{ json: { error: 'Missing or empty text for TTS', status: 'error' } }];\n}\nif (!data.language) {\n  return [{ json: { error: 'Missing language parameter', status: 'error' } }];\n}\nconst lang = data.language;\nconst langCode = lang.slice(0, 2) + '-' + lang.slice(3); // en-US -> en-US\nreturn [{\n  json: {\n    text: data.text.trim(),\n    language: lang,\n    language_code: langCode,\n    voice_name: data.voice_name || 'en-US-Standard-A',\n    pitch: data.pitch || 1.0,\n    speaking_rate: data.speaking_rate || 1.0,\n    session_id: data.session_id || 'unknown',\n  }\n}];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -37,12 +37,17 @@
         "bodyParameters": {
           "parameters": {
             "input": "={{ JSON.stringify({ text: $json.text }) }}",
-            "voice": "={{ JSON.stringify({ languageCode: $json.language.slice(0,2) + '-' + $json.language.slice(3), name: $json.voice_name }) }}",
+            "voice": "={{ JSON.stringify({ languageCode: $json.language_code, name: $json.voice_name }) }}",
             "audioConfig": "={{ JSON.stringify({ audioEncoding: 'MP3', pitch: $json.pitch, speakingRate: $json.speaking_rate }) }}"
           }
         },
         "options": {
-          "maxRedirects": 2
+          "maxRedirects": 2,
+          "headers": {
+            "Authorization": "={{ 'Bearer ' + $credentials.GOOGLE_TTS.accessToken }}",
+            "Content-Type": "application/json",
+            "X-Goog-User-Project": "={{ $credentials.GOOGLE_TTS.projectId }}"
+          }
         }
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -54,14 +59,14 @@
       "name": "Google Cloud TTS",
       "credentials": [
         {
-          "name": "GOOGLE_TTS_CREDENTIALS",
+          "name": "GOOGLE_TTS",
           "type": "n8n-nodes-base.googleAuth"
         }
       ]
     },
     {
       "parameters": {
-        "jsCode": "\n// Extract audio content from TTS response\nconst data = items[0].json;\nconst audioContent = data.audioContent;\n\nif (!audioContent) {\n  // TTS failed - return fallback signal\n  return [{\n    json: {\n      status: 'tts_failed',\n      audio_base64: null,\n      error: 'TTS API returned no audio content',\n      fallback: true,\n      text: items[0].json.text,\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    status: 'ok',\n    audio_base64: audioContent,\n    audio_format: 'mp3',\n    text: items[0].json.text,\n    language: items[0].json.language,\n  }\n}];\n"
+        "jsCode": "\n// Extract audio content from TTS response\nconst data = items[0].json;\nconst audioContent = data.audioContent;\n\nif (!audioContent) {\n  return [{\n    json: {\n      status: 'tts_failed',\n      audio_base64: null,\n      error: 'TTS API returned no audio content',\n      fallback: true,\n      text: items[0].json.text,\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    status: 'ok',\n    audio_base64: audioContent,\n    audio_format: 'mp3',\n    text: items[0].json.text,\n    language: items[0].json.language,\n  }\n}];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -132,7 +137,8 @@
   "staticData": null,
   "tags": [
     "voice",
-    "tts"
+    "tts",
+    "google_cloud_tts"
   ],
   "meta": {
     "templateId": null
