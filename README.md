@@ -99,7 +99,7 @@ Adapts the Google Maps Routes API v2 response into a clean internal format.
 | 37 | Mock safety scenarios | All 8 mock scenarios produce correct risk/confidence |
 
 **Run:** `python tests/safety/test_decisions.py && python tests/safety/test_maps.py && python tests/safety/test_vision.py`
-**Result:** 82/82 pass, 0 failures, 0 errors.
+**Result:** 82/82 pass, 0 failures, 0 errors (17 safety decisions + 28 Maps mapper + 37 vision perception)
 
 ### Test Fixtures (tests/fixtures/scenarios.json)
 
@@ -185,7 +185,7 @@ Three JSON Schema files (draft-07):
 | Google Maps Routes API mapper | ✅ BUILT + TESTED | 12KB, 28 tests pass, no API key needed for tests |
 | Test suite (total) | ✅ BUILT + TESTED | 82 tests (17 safety + 28 maps + 37 vision), 0 failures |
 | n8n workflow 01 (Routes API v2) | ✅ BUILT + UPDATED | Migrated from old Directions API to Routes API v2 |
-| n8n workflow 02 (perception) | 🔶 READY | Needs Vision API key or LLM choice |
+| n8n workflow 02 (perception) | 🔶 READY | Needs Vision API key or LLM choice. Python adapter: MOCK + GOOGLE_VISION + GEMINI |
 | n8n workflow 03 (safety decision) | ✅ BUILT | Same logic as Python engine, in JS |
 | n8n workflow 04 (voice/TTS) | ✅ BUILT + UPDATED | Correct OAuth2 auth for Google Cloud TTS |
 | n8n workflow 05 (session) | ✅ BUILT | In-memory, production needs DB |
@@ -195,8 +195,8 @@ Three JSON Schema files (draft-07):
 | Documentation | ✅ BUILT | 10 docs + README + decisions |
 | Google Maps integration | 🔶 READY, NOT CONNECTED | Routes API v2 wired, needs API key |
 | Google Maps mapper (Python) | ✅ BUILT + TESTED | server/maps_mapper.py, 28 tests, no API key needed for tests |
-| Vision AI adapter (Python) | ✅ BUILT + TESTED | server/vision_adapter.py, 37 tests, mock + Google Vision support |
-| Vision AI integration (n8n) | 🔶 READY, NOT CONNECTED | n8n workflow 02 updated with hardened conversion, needs Vision API key or LLM choice |
+| Vision AI adapter (Python) | ✅ BUILT + TESTED | server/vision_adapter.py, 37 tests, MOCK + GOOGLE_VISION + GEMINI support, all 3 providers dispatch through analyze_frame() |
+| Vision AI integration (n8n) | 🔶 READY, NOT CONNECTED | n8n workflow 02 wired for Google Vision API. Python adapter supports MOCK + GOOGLE_VISION + GEMINI. Gemini available as optional alternative provider. Needs Vision API key or LLM choice for live testing |
 | Google Cloud TTS | 🔶 READY, NOT CONNECTED | n8n workflow 04 wired with correct OAuth2 auth, needs GCP credentials |
 | n8n Cloud import | 🔴 NOT DONE | Requires your n8n account access |
 | Full end-to-end test | 🔴 NOT DONE | Requires n8n + API credentials |
@@ -242,7 +242,7 @@ Netra-Ai/
 │   ├── safety_engine.py         # Deterministic safety decision engine (core)
 │   └── maps_mapper.py           # Google Routes API v2 adapter + mock route generator
 │
-├── tests/                       # Automated tests (45 total, all passing)
+├── tests/                       # Automated tests (82 total: 17 safety + 28 maps + 37 vision, all passing)
 │   ├── fixtures/
 │   │   └── scenarios.json       # 10 safety + 5 vision mock fixtures
 │   └── safety/
@@ -334,7 +334,7 @@ The project uses the **Routes API v2** (GA since 2023), not the deprecated Direc
 ### Why deterministic rules instead of LLM for decisions
 
 - **Predictable** — same input always gives same output
-- **Testable** — 45 unit tests verify exact behavior
+- **Testable** — 82 tests verify exact behavior (17 safety decisions + 28 Maps mapper + 37 vision perception)
 - **Safe** — hard rules can't be overridden by an LLM having a bad day
 - **Fast** — instant, no LLM latency for the final decision
 - **Cheap** — no LLM tokens spent on decisions

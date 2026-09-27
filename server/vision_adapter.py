@@ -1278,23 +1278,7 @@ def analyze_frame(
     """
     if provider is None:
         provider = VisionProvider.MOCK
-    """Analyze a camera frame using the specified vision provider.
 
-    This is the single entry point for all vision analysis. The rest of
-    Netra AI calls this function — it does not need to know which provider
-    is being used.
-
-    Args:
-        image_base64: Base64-encoded image data.
-        provider: VisionProvider.MOCK, .GOOGLE_VISION, or .GEMINI.
-        api_key: API key for the provider (empty for MOCK).
-        scenario: Optional scenario name (used for MOCK and benchmarking).
-        frame_timestamp_ms: Optional frame timestamp.
-
-    Returns:
-        Validated perception dict matching perception.schema.json.
-        On any failure: safe_fallback() result.
-    """
     if not image_base64 and provider != VisionProvider.MOCK:
         return safe_fallback(
             "analyze_frame: no image data provided for non-mock provider"
@@ -1338,7 +1322,6 @@ def analyze_frame(
         return safe_fallback(
             f"analyze_frame: unknown provider '{provider_str}'"
         )
-
 
 # ---------------------------------------------------------------------------
 # Backward-compatibility aliases (for existing tests)
