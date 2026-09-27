@@ -152,7 +152,7 @@
   function captureFrame() {
     if (!state.camera.active) return null;
     const video = dom.cameraStream;
-    if (!video.videoWidth || !videoHeight) return null;
+    if (!video.videoWidth || !video.videoHeight) return null;
 
     const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth;
